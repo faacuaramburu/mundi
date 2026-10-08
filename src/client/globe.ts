@@ -1,3 +1,4 @@
+import { setTranslatedAria, setTranslatedText } from './i18n.js';
 import {
   AmbientLight, BackSide, CanvasTexture, Color, DirectionalLight, Mesh,
   MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, Quaternion, Scene,
@@ -49,10 +50,10 @@ export class Globe {
     try {
       this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
     } catch {
-      this.map.setAttribute('aria-label', 'World map with colored guesses');
+      setTranslatedAria(this.map, 'map');
       this.host.replaceChildren(this.map);
       const help = document.querySelector('#globe-help');
-      if (help) help.textContent = '3D is unavailable on this device. Your guesses still work on the map.';
+      if (help) setTranslatedText(help, 'fallback');
     }
 
     if (this.renderer) {
@@ -60,7 +61,7 @@ export class Globe {
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
       renderer.setClearColor(0x000000, 0);
       renderer.domElement.className = 'globe-canvas';
-      renderer.domElement.setAttribute('aria-label', 'Interactive globe. Drag to rotate and pinch or scroll to zoom.');
+      setTranslatedAria(renderer.domElement, 'globeControls');
       renderer.domElement.tabIndex = 0;
       renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
       this.host.replaceChildren(renderer.domElement);
@@ -106,7 +107,7 @@ export class Globe {
     this.disposeRenderer();
     this.host.replaceChildren(this.map);
     const help = document.querySelector('#globe-help');
-    if (help) help.textContent = '3D connection lost. Continue using the map, or reload to restore the globe.';
+    if (help) setTranslatedText(help, 'lost');
   };
 
   private drawMap(): void {

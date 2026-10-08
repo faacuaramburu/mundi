@@ -95,3 +95,8 @@ h2 { margin: 0; font-size: .8rem; font-weight: 650; }
   .footer { padding-bottom: 1.8rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+.language-button { border: 1px solid #bac9b7; border-radius: 1rem; padding: .3rem .65rem; background: #fffefa; color: #345a46; font-size: .75rem; }
+.language-button:hover { background: #e8eddf; }
+@media (max-width: 480px) { .topbar-meta { flex-wrap: wrap; justify-content: flex-end; gap: .3rem; } .mode-badge { font-size: .55rem; } }
+.guess-button { white-space: nowrap; }

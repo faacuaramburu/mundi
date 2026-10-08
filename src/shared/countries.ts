@@ -22,6 +22,11 @@ export interface Hint {
   border: boolean;
 }
 
+export function formatDistance(distance: number, language: 'en' | 'es' = 'en'): string {
+  if (!Number.isFinite(distance) || distance < 0) throw new Error('Invalid distance');
+  return `${distance === 0 ? '' : '≈ '}${new Intl.NumberFormat(language).format(Math.round(distance))} km`;
+}
+
 export function getHint(distance: number, correct: boolean, border: boolean): Hint {
   if (!Number.isFinite(distance) || distance < 0) throw new Error('Invalid distance');
   if (correct) return { label: 'Correct country', color: '#419b72', correct: true, border: false };

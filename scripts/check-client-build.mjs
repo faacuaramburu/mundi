@@ -9,7 +9,7 @@ for (const name of names) {
   if (!/^[\w.-]+\.(js|json)$/.test(name)) continue;
   // Names come only from this build's directory and must be plain filenames.
   const content = await readFile(new URL(name, assets), 'utf8');
-  if (content.includes('Local practice') || content.includes('A new country is hiding') || content.replace(/\s/g, '').includes(signature)) {
+  if (content.includes('Distance unavailable') || content.replace(/\s/g, '').includes(signature)) {
     throw new Error('Development practice or private distances leaked into the client build');
   }
 }

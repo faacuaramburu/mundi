@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import atlas from '../data/atlas.json' with { type: 'json' };
 import distances from '../data/distances.json' with { type: 'json' };
 import { boundaryDistance, makeTree, sampleBoundaries, sphericalDistance } from '../scripts/geography.js';
-import { findCountries, getHint, normalizeName } from '../src/shared/countries.js';
+import { findCountries, formatDistance, getHint, normalizeName } from '../src/shared/countries.js';
 import type { Country } from '../src/shared/countries.js';
 
 const countries = atlas.countries.map<Country>((country) => ({
@@ -71,5 +71,11 @@ describe('geographic data and proximity', () => {
     expect(findCountries(countries, 'Congo').map((country) => country.id)).toEqual(expect.arrayContaining(['COD', 'COG']));
     expect(findCountries(countries, 'argntina')[0]!.id).toBe('ARG');
     expect(findCountries(countries, '')).toEqual([]);
+  });
+
+  it('formats approximate kilometers and exact zero for borders or correct guesses', () => {
+    expect(formatDistance(6528.42)).toBe('≈ 6,528 km');
+    expect(formatDistance(0)).toBe('0 km');
+    expect(() => formatDistance(-1)).toThrow('Invalid distance');
   });
 });

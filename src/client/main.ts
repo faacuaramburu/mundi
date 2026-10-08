@@ -1,4 +1,7 @@
 import './style.css';
+import { initializeLanguage, setTranslatedText } from './i18n.js';
+
+initializeLanguage();
 import atlasUrl from '../../data/atlas.json?url';
 import { Globe } from './globe.js';
 import type { Atlas } from '../shared/countries.js';
@@ -21,9 +24,9 @@ try {
   const response = await fetch('/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
   const result: unknown = await response.json();
   const healthy = response.ok && typeof result === 'object' && result !== null && 'status' in result && result.status === 'ok';
-  if (status) status.textContent = healthy ? 'Server connected' : 'Server unavailable';
+  if (status) setTranslatedText(status, healthy ? 'connected' : 'unavailable');
 } catch {
-  if (status) status.textContent = 'Server unavailable';
+  if (status) setTranslatedText(status, 'unavailable');
 }
 
 if (import.meta.hot) import.meta.hot.dispose(() => globe.dispose());

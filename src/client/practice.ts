@@ -1,5 +1,6 @@
+import { countryName, foundMessage, getLanguage, guessCount, onLanguageChange, setTranslatedText, t } from './i18n.js';
 import distanceData from '../../data/distances.json';
-import { countryNames, findCountries, getHint, normalizeName } from '../shared/countries.js';
+import { countryNames, findCountries, formatDistance, getHint, normalizeName } from '../shared/countries.js';
 import type { Atlas, Country } from '../shared/countries.js';
 import type { Globe } from './globe.js';
 
@@ -35,12 +36,29 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
   let activeIndex = -1;
   let finished = false;
 
+  const translations: (() => void)[] = [];
+  feedback.removeAttribute('data-i18n');
+  let renderFeedback = () => { feedback.textContent = t('begin'); };
+  function showFeedback(render: () => string): void {
+    renderFeedback = () => { feedback.textContent = render(); };
+    renderFeedback();
+  }
+  const unsubscribe = onLanguageChange(() => {
+    count.textContent = guessCount(guessed.size);
+    if (selected) input.value = countryName(selected);
+    closeSuggestions();
+    renderFeedback();
+    for (const translate of translations) translate();
+  });
+  if (import.meta.hot) import.meta.hot.dispose(unsubscribe);
+
   form.hidden = false;
   element<HTMLElement>('#practice-actions').hidden = false;
-  element<HTMLElement>('#mode-label').textContent = 'LOCAL PRACTICE';
-  element<HTMLElement>('#round-label').textContent = 'FIND THE MYSTERY COUNTRY';
-  element<HTMLElement>('#practice-notice').textContent = 'Local practice · Private multiplayer is coming next.';
-  feedback.textContent = 'Names in English or Spanish. Choose a country to begin.';
+  setTranslatedText(element<HTMLElement>('#mode-label'), 'practice');
+  setTranslatedText(element<HTMLElement>('#round-label'), 'find');
+  setTranslatedText(element<HTMLElement>('#practice-notice'), 'practiceNotice');
+  renderFeedback();
+  count.textContent = guessCount(0);
 
   function closeSuggestions(): void {
     options.hidden = true;
@@ -51,7 +69,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
 
   function choose(country: Country): void {
     selected = country;
-    input.value = country.name;
+    input.value = countryName(country);
     closeSuggestions();
     input.focus();
   }
@@ -82,9 +100,9 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
       button.setAttribute('aria-selected', 'false');
       button.tabIndex = -1;
       const name = document.createElement('span');
-      name.textContent = country.name;
+      name.textContent = countryName(country);
       const translation = document.createElement('small');
-      translation.textContent = country.nameEs;
+      translation.textContent = getLanguage() === 'es' ? country.name : country.nameEs;
       button.append(name, translation);
       button.addEventListener('click', () => choose(country));
       item.append(button);
@@ -123,12 +141,12 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     const country = selected ?? (exact.length === 1 ? exact[0] : undefined);
     feedback.className = 'feedback';
     if (!country) {
-      feedback.textContent = ambiguous ? 'Please choose the specific country from the suggestions.' : 'Choose a country from the suggestions. English and Spanish names work.';
+      showFeedback(() => t(ambiguous ? 'ambiguous' : 'invalid'));
       feedback.classList.add('error');
       return;
     }
     if (guessed.has(country.id)) {
-      feedback.textContent = 'You already explored that country. Try somewhere new.';
+      showFeedback(() => t('duplicate'));
       feedback.classList.add('error');
       return;
     }
@@ -149,22 +167,31 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     swatch.setAttribute('aria-hidden', 'true');
     const name = document.createElement('span');
     name.className = 'guess-name';
-    name.textContent = country.name;
+    name.textContent = countryName(country);
     const label = document.createElement('span');
     label.className = 'guess-hint';
-    label.textContent = hint.label;
+    const translateEntry = () => {
+      name.textContent = countryName(country);
+      const distanceLabel = formatDistance(distance, getLanguage());
+      label.textContent = hint.correct ? `${distanceLabel} \u00b7 ${t('correct')}` : hint.border ? `${distanceLabel} \u00b7 ${t('border')}` : distanceLabel;
+    };
+    translations.push(translateEntry);
+    translateEntry();
     entry.append(number, swatch, name, label);
     history.prepend(entry);
-    count.textContent = `${guessed.size} ${guessed.size === 1 ? 'guess' : 'guesses'}`;
+    count.textContent = guessCount(guessed.size);
     empty.hidden = true;
     if (hint.correct) {
       finished = true;
       input.disabled = true;
       guessButton.disabled = true;
-      feedback.textContent = `You found ${target.name} in ${guessed.size} ${guessed.size === 1 ? 'guess' : 'guesses'}! Ready for another journey?`;
+      showFeedback(() => foundMessage(target, guessed.size));
       feedback.classList.add('success');
     } else {
-      feedback.textContent = hint.border ? `${country.name} shares a land border with the mystery country. Right next door!` : `${country.name}: ${hint.label.toLowerCase()}. Keep exploring.`;
+      showFeedback(() => {
+        const distanceLabel = formatDistance(distance, getLanguage());
+        return hint.border ? `${countryName(country)}: ${distanceLabel} \u00b7 ${t('borderFeedback')}` : `${countryName(country)}: ${distanceLabel} ${t('distanceFeedback')}`;
+      });
     }
     selected = null;
     input.value = '';
@@ -182,10 +209,11 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     guessButton.disabled = false;
     input.value = '';
     history.replaceChildren();
-    count.textContent = '0 guesses';
+    count.textContent = guessCount(0);
+    translations.length = 0;
     empty.hidden = false;
     feedback.className = 'feedback';
-    feedback.textContent = 'A new country is hiding. Where will you explore first?';
+    showFeedback(() => t('fresh'));
     closeSuggestions();
     globe.clear();
     input.focus();
