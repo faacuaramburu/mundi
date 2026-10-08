@@ -1,25 +1,29 @@
 import './style.css';
+import atlasUrl from '../../data/atlas.json?url';
+import { Globe } from './globe.js';
+import type { Atlas } from '../shared/countries.js';
 
-const status = document.querySelector<HTMLParagraphElement>('#server-status');
+const mapResponse = await fetch(atlasUrl, { signal: AbortSignal.timeout(20000) });
+if (!mapResponse.ok) throw new Error('Map data unavailable');
+const atlas = await mapResponse.json() as Atlas;
+const host = document.querySelector<HTMLElement>('#globe-host');
+if (!host) throw new Error('Globe host unavailable');
+const globe = new Globe(host, atlas);
+document.querySelector('#reset-view')?.addEventListener('click', () => globe.resetView());
 
-async function checkServer(): Promise<void> {
-  if (!status) return;
-
-  try {
-    const response = await fetch('/health', {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!response.ok) throw new Error('Server unavailable');
-    const result: unknown = await response.json();
-    if (
-      typeof result !== 'object' || result === null ||
-      !('status' in result) || result.status !== 'ok'
-    ) throw new Error('Unexpected response');
-    status.textContent = 'Server connected. Ready for the next stage.';
-  } catch {
-    status.textContent = 'Server unavailable. Please try again shortly.';
-  }
+if (import.meta.env.DEV) {
+  const { startPractice } = await import('./practice.js');
+  startPractice(atlas, globe);
 }
 
-void checkServer();
+const status = document.querySelector<HTMLElement>('#server-status');
+try {
+  const response = await fetch('/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+  const result: unknown = await response.json();
+  const healthy = response.ok && typeof result === 'object' && result !== null && 'status' in result && result.status === 'ok';
+  if (status) status.textContent = healthy ? 'Server connected' : 'Server unavailable';
+} catch {
+  if (status) status.textContent = 'Server unavailable';
+}
+
+if (import.meta.hot) import.meta.hot.dispose(() => globe.dispose());

@@ -3,22 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="A private geography race for two friends." />
+    <meta name="description" content="Find the mystery country. A private geography race for two friends." />
     <meta name="referrer" content="no-referrer" />
     <title>Globle MP</title>
     <script type="module" src="/src/client/main.ts"></script>
   </head>
   <body>
-    <main>
-      <p class="eyebrow">Geography, together</p>
-      <h1>One world.<br />Two explorers.</h1>
-      <p class="intro">A private race to find the same mystery country.</p>
-      <section class="card" aria-labelledby="status-heading">
-        <h2 id="status-heading">The journey starts here</h2>
-        <p>The project foundation is ready. The globe and private rooms are coming next.</p>
-        <p id="server-status" role="status">Checking server connection…</p>
-      </section>
-      <p class="footnote">Two players · Private links · No accounts</p>
-    </main>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Globle MP home"><span class="brand-icon" aria-hidden="true">◎</span> globle<span class="brand-mp">MP</span></a>
+        <div class="topbar-meta"><span id="mode-label" class="mode-badge">IN DEVELOPMENT</span><span id="server-status" class="server-status" role="status">Connecting…</span></div>
+      </header>
+      <main class="game-layout">
+        <section class="game-panel" aria-labelledby="game-title">
+          <div class="round-label"><span class="small-dot"></span><span id="round-label">THE WORLD IS YOUR CLUE</span></div>
+          <h1 id="game-title">A little closer.<br /> A world away.</h1>
+          <p class="intro">One country is hiding in plain sight.<br />Every guess gets you closer.</p>
+          <div class="practice-notice" id="practice-notice">The globe is ready. Private 1v1 rooms are coming next.</div>
+          <form id="guess-form" class="guess-form" autocomplete="off" hidden>
+            <label for="country-input">Where do you want to explore?</label>
+            <div class="input-row">
+              <input id="country-input" type="text" maxlength="80" placeholder="Try a country…" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="country-options" spellcheck="false" />
+              <button id="guess-button" class="guess-button" type="submit">Guess <span aria-hidden="true">↗</span></button>
+            </div>
+            <ul id="country-options" class="country-options" role="listbox" aria-label="Country suggestions" hidden></ul>
+          </form>
+          <p id="feedback" class="feedback" role="status" aria-live="polite">Drag to explore. Scroll or pinch to zoom.</p>
+          <div id="practice-actions" class="practice-actions" hidden><button id="new-round" type="button" class="text-button">New mystery country <span aria-hidden="true">↻</span></button></div>
+          <section class="history-section" aria-labelledby="history-title">
+            <div class="section-heading"><h2 id="history-title">Your explorations</h2><span id="guess-count">0 guesses</span></div>
+            <div id="empty-history" class="empty-history"><span aria-hidden="true">↗</span><p>Every journey starts<br />with a first guess.</p></div>
+            <ol id="guess-history" class="guess-history"></ol>
+          </section>
+        </section>
+        <section class="globe-panel" aria-label="Interactive world globe">
+          <div class="globe-topline"><span class="globe-caption">A WHOLE WORLD TO DISCOVER</span><button id="reset-view" class="view-button" type="button" aria-label="Reset globe view">◎ <span>Reset view</span></button></div>
+          <div id="globe-host" class="globe-host"><p class="loading-globe">Loading the world…</p></div>
+          <p id="globe-help" class="globe-help"><span aria-hidden="true">↔</span> Drag to rotate <span class="help-divider">·</span> Pinch or scroll to zoom</p>
+          <div class="legend" aria-label="Proximity color legend"><span>Far away</span><div class="legend-colors" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span>Getting warmer</span></div>
+          <p class="border-note">A shared land border? You’ll know you’re right next door.</p>
+        </section>
+      </main>
+      <footer class="footer"><span>Explore a little. Learn a lot.</span><span>Made with <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a><span class="footer-dot">·</span>No accounts. Just geography.</span></footer>
+    </div>
   </body>
 </html>
