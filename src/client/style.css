@@ -194,6 +194,7 @@ h2 { margin: 0; font-size: inherit; font-weight: 600; }
 .text-link { display: inline-block; color: var(--muted); font-size: .875rem; text-underline-offset: 4px; padding-block: 12px; min-height: 44px; }
 .round-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .round-clock { margin-left: auto; font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.round-heading:has(#round-title[hidden]) .round-clock { margin-inline: auto; }
 .invite-row { display: flex; gap: 8px; }
 .invite-row input { min-width: 0; width: 100%; padding: 12px; border: 1px solid var(--field-border); border-radius: 6px; color: var(--ink); background: var(--field); font-size: 1rem; }
 .secondary-button { min-height: 48px; border: 1px solid var(--field-border); padding: 10px 16px; border-radius: 6px; color: var(--ink); background: var(--field); font-weight: 600; }
