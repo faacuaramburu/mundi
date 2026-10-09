@@ -50,8 +50,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       : snapshot.phase === 'playing' && snapshot.endsAt !== null ? clock(snapshot.endsAt - now) : '';
     element('turn-status').textContent = snapshot.phase === 'playing' && snapshot.turn !== null
       ? `${snapshot.turn === snapshot.seat ? t('yourTurn') : `${t('turnOf')} ${snapshot.turn + 1}`} · ${clock(snapshot.turnEndsAt! - now)}` : '';
-    element('idle-clock').textContent = snapshot.phase === 'playing' && snapshot.idleEndsAt !== null
-      ? `${t('inactivity')}: ${clock(snapshot.idleEndsAt - now)}` : '';
+    element('idle-clock').hidden = true;
     const canGuess = isConnected() && !pending && snapshot.phase === 'playing'
       && (snapshot.endsAt === null || now < snapshot.endsAt) && (snapshot.you.remaining === null || snapshot.you.remaining > 0)
       && (snapshot.turn === null || snapshot.turn === snapshot.seat);
@@ -84,6 +83,12 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     }
     const s = snapshot;
     const solo = s.rules.players === 1;
+    const compact = solo || s.phase === 'playing';
+    document.querySelector<HTMLElement>('.round-heading')!.hidden = solo;
+    element('round-title').hidden = compact;
+    element('room-rules').hidden = compact;
+    element('you-progress').hidden = compact;
+    document.querySelector<HTMLElement>('.player-lines')!.hidden = solo;
     const allConnected = s.players.every(player => player?.connected);
     lobby.hidden = true; sessionPanel.hidden = false;
     setTranslatedText(element('mode-label'), solo ? 'singleplayer' : s.rules.play === 'turns' ? 'turnsMode' : 'privateGame');
@@ -102,7 +107,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     s.players.forEach((player, seat) => {
       if (seat === s.seat) return;
       const line = document.createElement('span'); line.className = 'player-progress';
-      line.textContent = progress(`${t('player')} ${seat + 1}`, player); opponents.append(line);
+      line.textContent = compact && player ? `${t('player')} ${seat + 1} · ${guessCount(player.count)}` : progress(`${t('player')} ${seat + 1}`, player); opponents.append(line);
     });
     readyButton.hidden = solo || s.phase !== 'waiting';
     readyButton.disabled = !isConnected() || pending || !allConnected;
