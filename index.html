@@ -56,10 +56,10 @@
           </section>
           <section id="country-index" class="country-index" aria-labelledby="index-title" hidden>
             <div class="section-heading"><h2 id="index-title" data-i18n="countryIndex">Country index</h2><span id="index-count">0 / 195</span></div>
+            <div class="index-views" role="group" aria-label="Map view" data-i18n-aria="mapView"><button id="index-globe" type="button" aria-pressed="true" data-i18n="globeView">Globe</button><button id="index-flat" type="button" aria-pressed="false" data-i18n="flatView">Flat map</button></div>
             <progress id="index-progress" value="0" max="195" aria-label="Countries found" data-i18n-aria="foundCountries"></progress>
             <p id="storage-note" class="room-rule" data-i18n="localProgress">Saved in this browser.</p>
-            <label for="index-search" data-i18n="searchIndex">Search countries</label><input id="index-search" type="search" maxlength="80" />
-            <label for="index-filter" data-i18n="indexFilter">Show countries</label><select id="index-filter"><option value="all" data-i18n="allCountries">All countries</option><option value="found" data-i18n="foundCountries">Found countries</option><option value="missing" data-i18n="missingCountries">Still to find</option></select>
+            <div class="index-tools"><div><label for="index-search" data-i18n="searchIndex">Search countries</label><input id="index-search" type="search" maxlength="80" /></div><div><label for="index-filter" data-i18n="indexFilter">Show countries</label><select id="index-filter"><option value="all" data-i18n="allCountries">All countries</option><option value="found" data-i18n="foundCountries">Found countries</option><option value="missing" data-i18n="missingCountries">Still to find</option></select></div></div>
             <p id="index-empty" class="room-rule" hidden></p><ul id="index-countries" class="index-countries"></ul>
             <a href="/?play=solo" class="secondary-button index-play" data-i18n="singleplayer">Singleplayer</a>
           </section>
@@ -106,7 +106,7 @@
           </form>
           <p id="feedback" class="feedback" data-i18n="loading" role="status" aria-live="polite">Loading the world…</p>
           <section class="history-section" aria-labelledby="history-title" hidden>
-            <div class="section-heading"><h2 id="history-title" data-i18n="history">Guesses</h2><span id="guess-count">0 guesses</span></div>
+            <div class="section-heading"><h2 id="history-title" data-i18n="history">Guesses</h2><button id="history-order" class="history-order" type="button" aria-pressed="false" aria-label="Sort by distance" data-i18n-aria="sortDistance"><span class="sort-arrow" aria-hidden="true">↕</span><span data-i18n="proximity">Proximity</span></button><span id="guess-count">0 guesses</span></div>
             <div id="empty-history" class="empty-history"><p data-i18n="empty">You haven't made any guesses yet.</p></div>
             <ol id="guess-history" class="guess-history"></ol>
           </section>

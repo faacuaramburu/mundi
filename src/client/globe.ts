@@ -1,8 +1,8 @@
-import { setTranslatedAria, setTranslatedText } from './i18n.js';
+import { countryName, setTranslatedAria, setTranslatedText } from './i18n.js';
 import {
   AmbientLight, CanvasTexture, DirectionalLight, Mesh,
-  MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Quaternion, Scene,
-  SphereGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
+  MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Quaternion, Raycaster, Scene,
+  Sphere, SphereGeometry, SRGBColorSpace, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Atlas, Country } from '../shared/countries.js';
@@ -31,6 +31,25 @@ export class Globe {
   private dirty = true;
   private destination: Vector3 | null = null;
   private host: HTMLElement;
+  private label = document.createElement('div');
+  private labeledCountry: Country | null = null;
+  private labelPosition = new Vector3();
+  private labelExpiresAt = 0;
+  private labelWidth = 0;
+  private labelHeight = 0;
+  private flat = false;
+  private hoveredCountry: Country | null = null;
+  private pointer = new Vector2();
+  private pointerInside = false;
+  private hoverDirty = false;
+  private collectionMode = false;
+  private raycaster = new Raycaster();
+  private surface = new Sphere(new Vector3(), 1);
+  private flatViewport = document.createElement('div');
+  private flatZoom = 1;
+  private flatPan = new Vector2();
+  private flatPointers = new Map<number, Vector2>();
+  private collectedIds = new Set<string>();
   private minimumDistance = 1.25;
   private fittedDistance = 3.2;
   private defaultView = position([-55, 15]).multiplyScalar(3.35);
@@ -66,11 +85,15 @@ export class Globe {
       setTranslatedAria(renderer.domElement, 'globeControls');
       renderer.domElement.tabIndex = 0;
       renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
+      renderer.domElement.addEventListener('pointerdown', this.centerRotation);
+      renderer.domElement.addEventListener('pointermove', this.onPointerMove);
+      renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
       this.host.replaceChildren(renderer.domElement);
       this.camera.position.copy(this.defaultView);
       this.controls = new OrbitControls(this.camera, renderer.domElement);
       this.controls.enableDamping = true;
       this.controls.enablePan = false;
+      this.controls.zoomToCursor = true;
       this.controls.minDistance = this.minimumDistance;
       this.controls.maxDistance = 5;
       this.controls.rotateSpeed = .65;
@@ -91,13 +114,26 @@ export class Globe {
       ]);
       for (const country of atlas.countries) {
         if (!tiny.has(country.id)) continue;
-        const marker = new Mesh(new SphereGeometry(.008, 10, 8), new MeshBasicMaterial({ color: '#a8b898' }));
-        marker.position.copy(position(country.focus).multiplyScalar(1.008));
+        const marker = new Mesh(new SphereGeometry(.004, 10, 8), new MeshBasicMaterial({ color: '#667273' }));
+        marker.position.copy(position(country.focus).multiplyScalar(1.004));
         this.markers.set(country.id, marker);
         this.scene.add(marker);
       }
+      this.drawMap();
+      this.texture.needsUpdate = true;
     }
 
+    this.label.className = 'country-label';
+    this.label.hidden = true;
+    this.host.append(this.label);
+    this.flatViewport.className = 'flat-map-viewport';
+    this.flatViewport.addEventListener('wheel', this.onFlatWheel, { passive: false });
+    this.flatViewport.addEventListener('pointerdown', this.onFlatPointerDown);
+    this.flatViewport.addEventListener('pointermove', this.onFlatPointerMove);
+    this.flatViewport.addEventListener('pointerup', this.onFlatPointerUp);
+    this.flatViewport.addEventListener('pointercancel', this.onFlatPointerUp);
+    this.map.addEventListener('pointermove', this.onPointerMove);
+    this.map.addEventListener('pointerleave', this.onPointerLeave);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
     this.resize();
@@ -105,6 +141,138 @@ export class Globe {
   }
 
   private stopFocus = (): void => { this.destination = null; };
+
+  private centerRotation = (event: PointerEvent): void => {
+    if (event.button !== 0 || !this.controls) return;
+    this.controls.target.set(0, 0, 0);
+    this.camera.lookAt(0, 0, 0);
+    this.dirty = true;
+  };
+
+  private onPointerMove = (event: MouseEvent): void => {
+    const canvas = this.flat ? this.map : this.renderer?.domElement;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
+      1 - (event.clientY - rect.top) / rect.height * 2);
+    this.pointerInside = true;
+    this.hoverDirty = true;
+  };
+
+  private onPointerLeave = (): void => {
+    this.pointerInside = false;
+    this.hoveredCountry = null;
+  };
+
+  private onFlatWheel = (event: WheelEvent): void => {
+    event.preventDefault();
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.host.clientHeight : 1);
+    this.zoomFlatMap(Math.exp(-delta * .0015), event.clientX, event.clientY);
+    this.onPointerMove(event);
+  };
+
+  private zoomFlatMap(factor: number, clientX: number, clientY: number): void {
+    const previous = this.flatZoom;
+    this.flatZoom = Math.max(1, Math.min(8, previous * factor));
+    const rect = this.host.getBoundingClientRect();
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
+    this.flatPan.x = x - (x - this.flatPan.x) * this.flatZoom / previous;
+    this.flatPan.y = y - (y - this.flatPan.y) * this.flatZoom / previous;
+    this.layoutFlatMap();
+  }
+
+  private onFlatPointerDown = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    this.flatViewport.setPointerCapture(event.pointerId);
+    this.flatPointers.set(event.pointerId, new Vector2(event.clientX, event.clientY));
+    this.hoveredCountry = null;
+  };
+
+  private onFlatPointerMove = (event: PointerEvent): void => {
+    const previous = this.flatPointers.get(event.pointerId);
+    if (!previous) { this.onPointerMove(event); return; }
+    const points = [...this.flatPointers.values()];
+    const oldDistance = points.length === 2 ? points[0]!.distanceTo(points[1]!) : 0;
+    const oldCenter = points.length === 2 ? points[0]!.clone().add(points[1]!).multiplyScalar(.5) : null;
+    if (this.flatPointers.size === 1) {
+      this.flatPan.x += event.clientX - previous.x;
+      this.flatPan.y += event.clientY - previous.y;
+    }
+    previous.set(event.clientX, event.clientY);
+    if (this.flatPointers.size === 2) {
+      const distance = points[0]!.distanceTo(points[1]!);
+      const center = points[0]!.clone().add(points[1]!).multiplyScalar(.5);
+      this.flatPan.add(center.clone().sub(oldCenter!));
+      if (oldDistance > 0) this.zoomFlatMap(distance / oldDistance, center.x, center.y);
+    }
+    this.layoutFlatMap();
+  };
+
+  private onFlatPointerUp = (event: PointerEvent): void => {
+    this.flatPointers.delete(event.pointerId);
+    this.onPointerMove(event);
+  };
+
+  private layoutFlatMap(): void {
+    const width = Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight - 120) * this.map.width / this.map.height);
+    const height = width * this.map.height / this.map.width;
+    this.flatPan.x = Math.max(-width * (this.flatZoom - 1) / 2, Math.min(width * (this.flatZoom - 1) / 2, this.flatPan.x));
+    this.flatPan.y = Math.max(-height * (this.flatZoom - 1) / 2, Math.min(height * (this.flatZoom - 1) / 2, this.flatPan.y));
+    this.map.style.width = `${width}px`;
+    this.map.style.height = `${height}px`;
+    this.map.style.transform = `translate(-50%, -50%) translate3d(${this.flatPan.x}px, ${this.flatPan.y}px, 0) scale(${this.flatZoom})`;
+    this.labelWidth = 0;
+  }
+
+  private countryAt(longitude: number, latitude: number): Country | null {
+    const x = (longitude + 180) / 360 * this.map.width;
+    const y = (90 - latitude) / 180 * this.map.height;
+    return this.atlas.countries.find(country => this.context.isPointInPath(this.paths.get(country.id)!, x, y)) ?? null;
+  }
+
+  private updateHover(): void {
+    this.hoverDirty = false;
+    this.hoveredCountry = null;
+    if (!this.pointerInside) return;
+    if (this.flatPointers.size) return;
+    if (this.flat) {
+      const countryUnderPointer = this.countryAt(this.pointer.x * 180, this.pointer.y * 90);
+      if (countryUnderPointer && this.collectedIds.has(countryUnderPointer.id)) this.hoveredCountry = countryUnderPointer;
+      if (this.hoveredCountry) return;
+      const rect = this.map.getBoundingClientRect();
+      for (const country of this.atlas.countries) {
+        if (!this.collectedIds.has(country.id) || !this.markers.has(country.id)) continue;
+        const x = (country.focus[0] + 180) / 180 - 1;
+        const y = country.focus[1] / 90;
+        if (Math.hypot((x - this.pointer.x) * rect.width / 2,
+          (y - this.pointer.y) * rect.height / 2) <= 8) {
+          this.hoveredCountry = country;
+          break;
+        }
+      }
+    } else {
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+      const point = this.raycaster.ray.intersectSphere(this.surface, new Vector3());
+      if (point) {
+        const country = this.countryAt(Math.atan2(-point.z, point.x) * 180 / Math.PI,
+          Math.asin(point.y) * 180 / Math.PI);
+        if (country && (this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id))) this.hoveredCountry = country;
+      }
+      if (this.hoveredCountry) return;
+      for (const country of this.atlas.countries) {
+        const marker = this.markers.get(country.id);
+        if (!marker || !(this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id))
+          || marker.position.dot(this.camera.position) <= marker.position.lengthSq()) continue;
+        const projected = marker.position.clone().project(this.camera);
+        if (Math.hypot((projected.x - this.pointer.x) * this.host.clientWidth / 2,
+          (projected.y - this.pointer.y) * this.host.clientHeight / 2) <= 8) {
+          this.hoveredCountry = country;
+          break;
+        }
+      }
+    }
+  }
 
   private onContextLost = (event: Event): void => {
     event.preventDefault();
@@ -119,17 +287,25 @@ export class Globe {
     ctx.fillStyle = '#174f7b';
     ctx.fillRect(0, 0, this.map.width, this.map.height);
     ctx.lineWidth = .5;
-    ctx.strokeStyle = '#d1d8c5';
+    ctx.strokeStyle = '#b2bac2';
     for (const path of this.backgroundPaths) {
-      ctx.fillStyle = '#82947a';
+      ctx.fillStyle = '#515b65';
       ctx.fill(path);
       ctx.stroke(path);
     }
     for (const country of this.atlas.countries) {
       const path = this.paths.get(country.id)!;
-      ctx.fillStyle = this.colors.get(country.id) ?? '#9eae8b';
+      ctx.fillStyle = this.colors.get(country.id) ?? '#667273';
       ctx.fill(path);
       ctx.stroke(path);
+    }
+    for (const country of this.atlas.countries) {
+      if (!this.markers.has(country.id)) continue;
+      ctx.beginPath();
+      ctx.arc((country.focus[0] + 180) / 360 * this.map.width,
+        (90 - country.focus[1]) / 180 * this.map.height, 2, 0, Math.PI * 2);
+      ctx.fillStyle = this.colors.get(country.id) ?? '#667273';
+      ctx.fill();
     }
   }
 
@@ -137,6 +313,7 @@ export class Globe {
     if (!this.renderer) return;
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
+    this.labelWidth = 0;
     this.camera.aspect = width / height;
     // Fit the globe's width on tall, narrow columns as well as its height.
     this.camera.fov = 2 * Math.atan(Math.tan(19 * Math.PI / 180) / Math.min(1, this.camera.aspect)) * 180 / Math.PI;
@@ -153,11 +330,12 @@ export class Globe {
     if (this.destination && this.destination.length() < this.minimumDistance) this.destination.setLength(this.minimumDistance);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    if (this.flat) this.layoutFlatMap();
     this.dirty = true;
   }
 
   private animate = (): void => {
-    if (this.renderer) {
+    if (this.renderer && !this.flat) {
       if (this.destination) {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reducedMotion || this.camera.position.distanceTo(this.destination) < .015) {
@@ -174,16 +352,19 @@ export class Globe {
       }
       if (this.controls?.update() || this.dirty) {
         this.renderer.render(this.scene, this.camera);
+        this.hoverDirty = this.pointerInside;
         this.dirty = false;
       }
     }
+    if (this.hoverDirty) this.updateHover();
+    this.updateLabel();
     if (this.renderer) this.frame = requestAnimationFrame(this.animate);
   };
 
   paint(country: Country, color: string): void {
     this.colors.set(country.id, color);
     const marker = this.markers.get(country.id);
-    if (marker) marker.material.color.set('#ffffff');
+    if (marker) marker.material.color.set(color);
     this.drawMap();
     this.texture.needsUpdate = true;
     this.focusCountry(country);
@@ -191,23 +372,57 @@ export class Globe {
   }
 
   focusCountry(country: Country): void {
-    this.destination = position(country.focus).multiplyScalar(this.fittedDistance);
+    this.destination = position(country.focus).multiplyScalar(this.camera.position.length());
+    this.controls?.target.set(0, 0, 0);
+    this.labeledCountry = country;
+    this.labelPosition.copy(position(country.focus).multiplyScalar(1.016));
+    this.labelExpiresAt = performance.now() + 6000;
+    if (this.collectionMode) this.labeledCountry = null;
+    if (this.flat) {
+      this.flatPan.set(-country.focus[0] / 360 * this.map.clientWidth * this.flatZoom,
+        country.focus[1] / 180 * this.map.clientHeight * this.flatZoom);
+      this.layoutFlatMap();
+    }
     this.dirty = true;
   }
 
+  setFlatMap(flat: boolean): void {
+    this.flat = flat;
+    this.onPointerLeave();
+    if (flat) this.labeledCountry = null;
+    if (this.renderer) this.renderer.domElement.hidden = flat;
+    if (flat) {
+      this.map.className = 'flat-map';
+      setTranslatedAria(this.map, 'map');
+      this.host.append(this.flatViewport);
+      this.flatViewport.append(this.map);
+      this.layoutFlatMap();
+    } else if (this.renderer) {
+      this.map.remove();
+      this.flatViewport.remove();
+    }
+    setTranslatedText(document.querySelector('#globe-help')!, flat ? 'mapHelp' : 'help');
+    this.dirty = true;
+    this.updateLabel();
+  }
+
   showCollection(ids: ReadonlySet<string>): void {
+    this.collectionMode = true;
+    this.collectedIds = new Set(ids);
+    this.labeledCountry = null;
+    if (this.flat) this.layoutFlatMap();
     this.colors.clear();
     for (const country of this.atlas.countries) {
       const color = ids.has(country.id) ? '#419b72' : '#667273';
       this.colors.set(country.id, color);
       this.markers.get(country.id)?.material.color.set(color);
     }
-    this.drawMap(); this.texture.needsUpdate = true; this.resetView();
+    this.drawMap(); this.texture.needsUpdate = true; this.dirty = true;
   }
 
   clear(): void {
     this.colors.clear();
-    for (const marker of this.markers.values()) marker.material.color.set('#a8b898');
+    for (const marker of this.markers.values()) marker.material.color.set('#667273');
     this.drawMap();
     this.texture.needsUpdate = true;
     this.resetView();
@@ -215,15 +430,68 @@ export class Globe {
 
   resetView(): void {
     this.destination = null;
+    this.labeledCountry = null;
+    this.hoveredCountry = null;
+    this.label.hidden = true;
+    this.flatZoom = 1;
+    this.flatPan.set(0, 0);
+    if (this.flat) this.layoutFlatMap();
     this.camera.position.copy(this.defaultView);
+    this.controls?.target.set(0, 0, 0);
     this.controls?.update();
     this.dirty = true;
+  }
+
+  private updateLabel(): void {
+    if (!this.labeledCountry && !this.hoveredCountry) {
+      this.label.hidden = true;
+      return;
+    }
+    if (performance.now() >= this.labelExpiresAt) {
+      this.labeledCountry = null;
+      if (!this.hoveredCountry) {
+        this.label.hidden = true;
+        return;
+      }
+    }
+    const country = this.hoveredCountry ?? this.labeledCountry!;
+    const anchor = this.hoveredCountry ? position(country.focus).multiplyScalar(1.016) : this.labelPosition;
+    const projected = anchor.clone().project(this.camera);
+    const visible = !!this.hoveredCountry || this.flat || anchor.dot(this.camera.position) > anchor.lengthSq()
+      && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
+    this.label.hidden = !visible;
+    if (!visible) return;
+    const name = countryName(country);
+    if (this.label.textContent !== name || !this.labelWidth) {
+      this.label.textContent = name;
+      this.labelWidth = this.label.offsetWidth;
+      this.labelHeight = this.label.offsetHeight;
+    }
+    const halfWidth = this.labelWidth / 2 + 8;
+    const mapRect = this.flat ? this.map.getBoundingClientRect() : this.host.getBoundingClientRect();
+    const hostRect = this.host.getBoundingClientRect();
+    const x = this.hoveredCountry
+      ? mapRect.left - hostRect.left + (this.pointer.x + 1) / 2 * mapRect.width
+      : this.flat
+      ? mapRect.left - hostRect.left + (country.focus[0] + 180) / 360 * mapRect.width
+      : (projected.x + 1) * this.host.clientWidth / 2;
+    const y = this.hoveredCountry
+      ? mapRect.top - hostRect.top + (1 - this.pointer.y) / 2 * mapRect.height
+      : this.flat
+      ? mapRect.top - hostRect.top + (90 - country.focus[1]) / 180 * mapRect.height
+      : (1 - projected.y) * this.host.clientHeight / 2;
+    const left = Math.max(halfWidth, Math.min(this.host.clientWidth - halfWidth, x));
+    const top = Math.max(this.labelHeight + 8, y - 12);
+    this.label.style.transform = `translate3d(${left}px, ${top}px, 0) translate(-50%, -100%)`;
   }
 
   private disposeRenderer(): void {
     this.controls?.removeEventListener('start', this.stopFocus);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.onContextLost);
+    this.renderer?.domElement.removeEventListener('pointerdown', this.centerRotation);
+    this.renderer?.domElement.removeEventListener('pointermove', this.onPointerMove);
+    this.renderer?.domElement.removeEventListener('pointerleave', this.onPointerLeave);
     this.renderer?.dispose();
     this.renderer = null;
   }

@@ -43,7 +43,23 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
   const query = document.querySelector<HTMLInputElement>('#index-search')!;
   const filter = document.querySelector<HTMLSelectElement>('#index-filter')!;
   const list = document.querySelector<HTMLElement>('#index-countries')!;
+  const globeButton = document.querySelector<HTMLButtonElement>('#index-globe')!;
+  const flatButton = document.querySelector<HTMLButtonElement>('#index-flat')!;
+  function chooseView(flat: boolean): void {
+    globe.setFlatMap(flat);
+    globeButton.setAttribute('aria-pressed', String(!flat));
+    flatButton.setAttribute('aria-pressed', String(flat));
+    try { localStorage.setItem('mundi-index-view', flat ? 'flat' : 'globe'); }
+    catch { /* The current view remains available without storage. */ }
+  }
+  globeButton.addEventListener('click', () => chooseView(false));
+  flatButton.addEventListener('click', () => chooseView(true));
+  let flat = false;
+  try { flat = localStorage.getItem('mundi-index-view') === 'flat'; }
+  catch { /* The index defaults to the globe without storage. */ }
+  chooseView(flat);
   panel.hidden = false;
+  document.querySelector('.game-panel')!.classList.add('index-panel');
   document.querySelector<HTMLElement>('#feedback')!.hidden = true;
   document.querySelector<HTMLElement>('.legend')!.hidden = true;
   setTranslatedText(document.querySelector('#mode-label')!, 'countryIndex');

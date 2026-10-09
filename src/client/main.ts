@@ -5,9 +5,11 @@ import { Globe } from './globe.js';
 import type { Atlas } from '../shared/countries.js';
 import { createCollection, showIndex } from './collection.js';
 import { initializeTheme } from './theme.js';
+import { initializeHistoryOrder } from './history-order.js';
 
 initializeLanguage();
 initializeTheme();
+initializeHistoryOrder();
 turnBrandOrbit();
 document.querySelector('.brand')?.addEventListener('pointerenter', turnBrandOrbit);
 void fetch('/mundi.svg').then(async response => {

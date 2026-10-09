@@ -2,6 +2,13 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  mapHelp: ['Drag and zoom', 'Arrastrar y acercar'],
+  mapView: ['Map view', 'Vista del mapa'],
+  globeView: ['Globe', 'Globo'],
+  flatView: ['Flat map', 'Mapa plano'],
+  proximity: ['Proximity', 'Cercanía'],
+  sortDistance: ['Sort closest guesses first', 'Ordenar intentos del más cercano al más lejano'],
+  sortRecent: ['Restore most recent guesses first', 'Volver a mostrar primero los intentos más recientes'],
   welcome: ['Choose how to play', 'Elegí cómo jugar'],
   singleplayer: ['Singleplayer', 'Un jugador'],
   multiplayer: ['Multiplayer', 'Multijugador'],

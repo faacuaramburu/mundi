@@ -8,6 +8,7 @@ import type { Message } from './i18n.js';
 import { turnBrandOrbit } from './brand-motion.js';
 import { countryFlag } from './flags.js';
 import type { Collection } from './collection.js';
+import { applyHistoryOrder } from './history-order.js';
 
 const element = <T extends HTMLElement>(id: string): T => document.querySelector<T>(`#${id}`)!;
 function errorMessage(code: ErrorCode): Message {
@@ -61,6 +62,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     guesses.forEach((guess, index) => {
       const country = countries.get(guess.countryId); if (!country) return;
       const entry = document.createElement('li'); entry.className = 'guess-entry';
+      entry.dataset.distance = String(guess.distance); entry.dataset.order = String(index + 1);
       const number = document.createElement('span'); number.className = 'guess-number'; number.textContent = String(index + 1).padStart(2, '0');
       const swatch = document.createElement('span'); swatch.className = 'guess-swatch'; swatch.setAttribute('aria-hidden', 'true');
       swatch.style.backgroundColor = getHint(guess.distance, guess.correct, guess.border).color;
@@ -70,6 +72,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       hint.textContent = formatDistance(guess.distance, getLanguage()) + (guess.correct ? ` · ${t('correct')}` : guess.border ? ` · ${t('border')}` : '');
       entry.append(number, swatch, name, hint); node.prepend(entry);
     });
+    if (node.id === 'guess-history') applyHistoryOrder(node);
   }
   function render(): void {
     feedback.className = 'feedback';

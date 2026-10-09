@@ -70,6 +70,15 @@ input { caret-color: var(--ink); }
 .game-layout { display: grid; grid-template-columns: minmax(0, 69fr) minmax(360px, 31fr); min-height: calc(100svh - var(--header-height)); }
 .globe-panel { position: relative; min-width: 0; min-height: 620px; height: calc(100svh - var(--header-height)); background: var(--stage); color: var(--stage-ink); display: flex; flex-direction: column; padding: 32px 32px 24px; }
 .globe-host { position: absolute; inset: 0; min-height: 0; display: grid; place-items: center; }
+.flat-map-viewport { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+.flat-map-viewport:active { cursor: grabbing; }
+.globe-host canvas.flat-map { position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; transform-origin: center; }
+.index-views { display: flex; gap: 8px; margin-bottom: 16px; }
+.index-views button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--field-border); background: var(--field); color: var(--ink); font-size: var(--meta-size); }
+.index-views button[aria-pressed="true"] { background: var(--primary); color: var(--primary-ink); }
+.country-label { position: absolute; inset: 0 auto auto 0; z-index: 1; max-width: min(240px, calc(100% - 16px)); padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: var(--meta-size); pointer-events: none; }
+.history-order { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 8px; background: transparent; border: 0; color: var(--muted); font-size: var(--meta-size); }
+.history-order[aria-pressed="true"] { color: var(--ink); background: var(--option-active); }
 .globe-panel::after { content: ''; position: absolute; inset: auto 0 0; height: 160px; pointer-events: none; background: linear-gradient(transparent, var(--stage)); }
 .globe-host canvas { display: block; max-width: 100%; max-height: 100%; }
 .globe-host canvas.globe-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; outline-offset: -4px; }
@@ -225,6 +234,15 @@ select:disabled { opacity: .5; }
 .index-country small { color: var(--muted); font-size: .75rem; }
 .index-country.found small { color: var(--success-text); font-weight: 600; }
 .index-play { display: block; text-align: center; text-decoration: none; }
+.game-panel.index-panel { padding-block: 20px; }
+.country-index { font-size: 1rem; }
+.country-index .index-views { margin: 12px 0 8px; }
+.country-index #index-progress { margin-top: 8px; }
+.country-index #storage-note { margin: 8px 0 12px; }
+.index-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.index-tools label { margin: 0 0 4px; font-size: .875rem; }
+.index-tools input, .index-tools select { min-height: 44px; padding: 8px; font-size: .875rem; }
+.index-country { min-height: 44px; padding-block: 8px; }
 .country-flag { object-fit: contain; flex-shrink: 0; width: 28px; height: 21px; vertical-align: middle; }
 .country-option { justify-content: flex-start; gap: 12px; }
 .country-option-labels { min-width: 0; display: flex; flex-direction: column; }
@@ -244,7 +262,7 @@ select:disabled { opacity: .5; }
   .game-panel { height: 100%; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
   .country-index { display: flex; flex-direction: column; height: 100%; min-height: 0; }
   .country-index > :not(.index-countries) { flex-shrink: 0; }
-  .index-countries { flex: 1; min-height: 100px; max-height: none; margin-block: 16px; }
+  .index-countries { flex: 1; min-height: 180px; max-height: none; margin-block: 12px; }
 }
 @media (max-width: 800px) {
   .home-screen { padding-block: 8px; }

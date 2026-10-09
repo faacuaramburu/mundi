@@ -4,6 +4,7 @@ import { countryNames, findCountries, formatDistance, getHint, normalizeName } f
 import type { Atlas, Country } from '../shared/countries.js';
 import type { Globe } from './globe.js';
 import { turnBrandOrbit } from './brand-motion.js';
+import { applyHistoryOrder } from './history-order.js';
 
 function element<T extends HTMLElement>(selector: string): T {
   const result = document.querySelector<T>(selector);
@@ -158,6 +159,8 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     turnBrandOrbit();
     const entry = document.createElement('li');
     entry.className = 'guess-entry';
+    entry.dataset.distance = String(distance);
+    entry.dataset.order = String(guessed.size);
     const number = document.createElement('span');
     number.className = 'guess-number';
     number.textContent = String(guessed.size).padStart(2, '0');
@@ -179,6 +182,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     translateEntry();
     entry.append(number, swatch, name, label);
     history.prepend(entry);
+    applyHistoryOrder(history);
     count.textContent = guessCount(guessed.size);
     empty.hidden = true;
     if (hint.correct) {
