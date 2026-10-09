@@ -6,6 +6,7 @@ import type { Globe } from './globe.js';
 import { turnBrandOrbit } from './brand-motion.js';
 import { applyHistoryOrder } from './history-order.js';
 import { renderRoundResult } from './round-result.js';
+import { animateGuess, animateRoundResult } from './game-motion.js';
 
 function element<T extends HTMLElement>(selector: string): T {
   const result = document.querySelector<T>(selector);
@@ -185,6 +186,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     entry.append(number, swatch, name, label);
     history.prepend(entry);
     applyHistoryOrder(history, hint.correct);
+    animateGuess(entry);
     count.textContent = guessCount(guessed.size);
     empty.hidden = true;
     if (hint.correct) {
@@ -193,6 +195,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
       guessButton.disabled = true;
       renderFeedback = () => { renderRoundResult(feedback, target, t('win'), true); };
       renderFeedback();
+      animateRoundResult(feedback, true);
     } else {
       showFeedback(() => {
         const distanceLabel = formatDistance(distance, getLanguage());

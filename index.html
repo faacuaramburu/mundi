@@ -6,7 +6,7 @@
     <meta name="description" content="Find the mystery country. Play solo or with friends and complete your world." />
     <meta name="referrer" content="no-referrer" />
     <title>Mundi</title>
-    <link rel="icon" type="image/svg+xml" href="/mundi.svg" />
+    <link id="mundi-favicon" rel="icon" type="image/svg+xml" href="/favicon-light.svg" />
     <link rel="stylesheet" href="/src/client/style.css" />
     <script src="/theme.js"></script>
     <script type="module" src="/src/client/main.ts"></script>
@@ -20,6 +20,7 @@
         </a>
         <h1 id="mode-label" class="mode-label">Mundi</h1>
         <a class="header-index text-link" href="/?view=index" data-i18n="countryIndex">Country index</a>
+        <button id="faq-toggle" class="header-faq" type="button" aria-controls="country-faq" aria-expanded="false" aria-label="FAQ" data-i18n-aria="faq">FAQ</button>
         <button id="theme-toggle" class="theme-button" type="button" aria-pressed="false" aria-label="Switch to dark mode" data-i18n-aria="enableDarkMode">
           <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" /></svg>
           <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
@@ -27,6 +28,35 @@
         </button>
         <button id="language-toggle" class="language-button" type="button">Español</button>
       </header>
+      <section id="country-faq" class="country-faq" aria-labelledby="faq-title" hidden>
+        <div class="faq-content">
+          <h2 id="faq-title" data-i18n="faqTitle">Countries and distances</h2>
+          <details class="faq-question" open>
+            <summary data-i18n="faqRosterQuestion">Which countries can be the answer?</summary>
+            <p data-i18n="faqRosterAnswer">Mundi has a fixed list of 195 countries: the 193 UN member states, plus Palestine and the Holy See, shown as Vatican City. These are the same countries you can guess and collect in your index.</p>
+          </details>
+          <details class="faq-question">
+            <summary data-i18n="faqTerritoriesQuestion">What about Puerto Rico, Greenland and Western Sahara?</summary>
+            <p data-i18n="faqTerritoriesAnswer">They are outside this list. They appear on the map as geographic context, but cannot be guessed, chosen as the mystery country or added to your index. Kosovo, Taiwan and Hong Kong are also outside the list.</p>
+          </details>
+          <details class="faq-question">
+            <summary data-i18n="faqUkQuestion">Can I guess England or Scotland?</summary>
+            <p data-i18n="faqUkAnswer">The accepted answer is United Kingdom. England, Scotland, Wales and Northern Ireland do not have separate entries in the game.</p>
+          </details>
+          <details class="faq-question">
+            <summary data-i18n="faqDistanceQuestion">How are distances calculated?</summary>
+            <p data-i18n="faqDistanceAnswer">We estimate the shortest distance between the boundaries of your guess and the mystery country, including coastlines and islands in their playing areas. We measure along the Earth’s surface, not between capitals or country centers.</p>
+            <p data-i18n="faqDistanceAccuracy">The ≈ symbol means the distance is approximate: we use Natural Earth map outlines, sample their boundaries at intervals of up to 10 km and round the result to the nearest kilometer.</p>
+            <p data-i18n="faqDistanceZero">Countries that share a land border show 0 km and “Shares a border”. The correct answer also shows 0 km, but is marked “Correct”. A rounded distance can also be 0 km: only “Correct” means you found the country.</p>
+          </details>
+          <details class="faq-question">
+            <summary data-i18n="faqMapQuestion">How do overseas territories affect distances?</summary>
+            <p data-i18n="faqMapAnswer">Distances use the country boundaries included in Mundi’s map. Some overseas areas are shown only as context. For example, France includes European France and Corsica; French Guiana is excluded from its playing area, so Brazil does not count as France’s neighbor.</p>
+          </details>
+          <a class="faq-index-link" href="/?view=index" data-i18n="faqIndex">See all 195 countries in the index</a>
+          <p class="faq-sources"><span data-i18n="faqSources">UN references:</span> <a href="https://research.un.org/en/unmembers/currentmembers" target="_blank" rel="noopener noreferrer" data-i18n="faqMembers">Member states</a> · <a href="https://research.un.org/en/unmembers/observers" target="_blank" rel="noopener noreferrer" data-i18n="faqObservers">Observer states</a></p>
+        </div>
+      </section>
       <main class="game-layout">
         <section class="globe-panel" aria-label="Interactive world globe" data-i18n-aria="globe">
           <div id="globe-host" class="globe-host"><p class="loading-globe" data-i18n="loading">Loading the world…</p></div>

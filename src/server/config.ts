@@ -16,7 +16,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const port = Number(portText);
   if (port < 1 || port > 65535) throw new Error('Invalid PORT');
 
-  const origin = env.APP_ORIGIN ?? (environment === 'production' ? '' : environment === 'development' ? 'http://127.0.0.1:5173' : 'http://localhost:3000');
+  const renderOrigin = environment === 'production' && env.RENDER === 'true' ? env.RENDER_EXTERNAL_URL : undefined;
+  const origin = env.APP_ORIGIN ?? renderOrigin ?? (environment === 'production' ? '' : environment === 'development' ? 'http://127.0.0.1:5173' : 'http://localhost:3000');
   let url: URL;
   try {
     url = new URL(origin);

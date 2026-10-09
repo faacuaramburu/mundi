@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: mundi
+    runtime: node
+    plan: free
+    region: virginia
+    branch: master
+    numInstances: 1
+    autoDeployTrigger: commit
+    buildCommand: npm ci --include=dev && npm run build && npm run check:client-build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_VERSION
+        value: 24.20.0

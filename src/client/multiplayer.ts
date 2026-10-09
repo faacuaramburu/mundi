@@ -11,6 +11,7 @@ import type { Collection } from './collection.js';
 import { applyHistoryOrder } from './history-order.js';
 import { renderRoundResult } from './round-result.js';
 import { getPlayerName, onProfileChange } from './profile.js';
+import { animateGuess, animateRoundResult } from './game-motion.js';
 
 const element = <T extends HTMLElement>(id: string): T => document.querySelector<T>(`#${id}`)!;
 function errorMessage(code: ErrorCode): Message {
@@ -182,6 +183,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
         showError(errorMessage(message.error)); return;
       }
       if (message.type !== 'snapshot') return;
+      const wasPlaying = snapshot?.round === message.round && snapshot.phase === 'playing';
       attempts = 0; pending = false; window.clearTimeout(pendingTimer);
       if (message.round !== lastRound) { globe.clear(); painted = 0; lastRound = message.round; error = null; newDiscovery = false; }
       const added = message.guesses.slice(painted);
@@ -196,6 +198,13 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       painted = message.guesses.length;
       snapshot = message; receivedAt = performance.now();
       element('server-status').textContent = t('connected'); render();
+      if (wasPlaying && added.length) {
+        const entry = element('guess-history').querySelector<HTMLElement>(`[data-order="${message.guesses.length}"]`);
+        if (entry) animateGuess(entry);
+      }
+      if (wasPlaying && message.result && feedback.classList.contains('round-result')) {
+        animateRoundResult(feedback, message.result.winner === message.seat);
+      }
       if (message.rules.players === 1 && message.phase === 'waiting' && !message.you.ready) send({ type: 'ready', value: true, round: message.round });
     });
     current.addEventListener('close', () => {

@@ -8,6 +8,10 @@ Type a country name in English or Spanish, select a suggestion, and press Guess.
 
 The game starts in dark mode. Use the sun/moon button in the header to choose light mode; your choice is remembered in this browser.
 
+Open FAQ in the header to see which countries are accepted, how territories are handled, how distances are calculated, and the full country index.
+
+Zooming closer to the globe makes dragging less sensitive.
+
 Use the arrow beside Guesses to sort by proximity. In the country index, switch between Globe and Flat map; drag and zoom to explore your discoveries. Hover over a discovered country to see its name.
 
 Choose Singleplayer at home to play without a guess or round time limit. Personally correct countries join your Country index, with a world map and collection out of 195. Progress is saved in this browser; clearing site data removes it. There are no accounts or synchronization between devices.
@@ -40,7 +44,11 @@ npm run dev
 
 Open 127.0.0.1:5173 (http://127.0.0.1:5173/) in your browser. Saving changes updates the page automatically. Stop both terminals with Ctrl+C when finished. Development also has a Practice link. These local addresses are accessible only on your computer; an HTTPS deployment is needed to share invitations between computers.
 
-To run the production build, set NODE_ENV=production and APP_ORIGIN to your exact HTTPS site origin in an ignored .env, then run npm run build and npm start. The host must forward WebSocket connections. No public deployment is configured yet.
+To run the production build, set NODE_ENV=production and APP_ORIGIN to your exact HTTPS site origin in an ignored .env, then run npm run build and npm start. The host must forward WebSocket connections.
+
+For free hosting on Render, sign in at https://dashboard.render.com/ and create a Blueprint from the Mundi repository using render.yaml. It runs the page and multiplayer server together on one Free web service. Render supplies the HTTPS address automatically; for a custom domain, set APP_ORIGIN to that exact HTTPS origin. Use the assigned address to create and share rooms.
+
+The Free service sleeps after 15 minutes without activity and can take about a minute to wake up. Rooms disappear when the server restarts; the country index remains in each browser. Render applies monthly usage limits. Without a payment method, exceeding those limits suspends services or builds rather than charging for extra usage.
 
 Map data: Natural Earth (https://www.naturalearthdata.com/), public domain. Flags: flag-icons (https://github.com/lipis/flag-icons), MIT. Code: MIT license.
 

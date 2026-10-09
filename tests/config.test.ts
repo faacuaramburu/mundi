@@ -14,6 +14,21 @@ describe('configuration', () => {
     expect(loadConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://example.com' }).host).toBe('0.0.0.0');
   });
 
+  it('uses Render’s assigned HTTPS origin and port in production', () => {
+    expect(loadConfig({ NODE_ENV: 'production', RENDER: 'true', RENDER_EXTERNAL_URL: 'https://mundi-example.onrender.com', PORT: '10000' }))
+      .toEqual({ environment: 'production', host: '0.0.0.0', port: 10000, origin: 'https://mundi-example.onrender.com' });
+  });
+
+  it('keeps explicit custom origins and local development independent of Render', () => {
+    expect(loadConfig({ NODE_ENV: 'production', RENDER: 'true', RENDER_EXTERNAL_URL: 'https://mundi-example.onrender.com', APP_ORIGIN: 'https://example.com' }).origin).toBe('https://example.com');
+    expect(loadConfig({ RENDER: 'true', RENDER_EXTERNAL_URL: 'https://mundi-example.onrender.com' }).origin).toBe('http://127.0.0.1:5173');
+    expect(() => loadConfig({ NODE_ENV: 'production', RENDER_EXTERNAL_URL: 'https://mundi-example.onrender.com' })).toThrow('APP_ORIGIN');
+  });
+
+  it.each(['http://mundi-example.onrender.com', 'https://mundi-example.onrender.com/path', 'https://user:password@mundi-example.onrender.com', ''])('validates Render origins with the same production rules', (origin) => {
+    expect(() => loadConfig({ NODE_ENV: 'production', RENDER: 'true', RENDER_EXTERNAL_URL: origin })).toThrow();
+  });
+
   it.each(['https://example.com/path', 'https://example.com/', 'https://user:secret@example.com', 'https://example.com?token=secret'])('rejects non-origin values', (origin) => {
     expect(() => loadConfig({ APP_ORIGIN: origin })).toThrow();
   });

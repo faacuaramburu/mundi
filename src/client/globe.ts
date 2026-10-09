@@ -1,11 +1,13 @@
 import { countryName, setTranslatedAria, setTranslatedText } from './i18n.js';
 import {
   AmbientLight, CanvasTexture, Color, DirectionalLight, InstancedMesh, Matrix4, Mesh,
-  MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Quaternion, Raycaster, Scene,
+  MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Raycaster, Scene,
   Sphere, SphereGeometry, SRGBColorSpace, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Atlas, Country } from '../shared/countries.js';
+import { GlobeFlight } from './globe-flight.js';
+import { prefersReducedMotion } from './motion.js';
 
 function position([longitude, latitude]: [number, number]): Vector3 {
   const lon = longitude * Math.PI / 180;
@@ -30,7 +32,7 @@ export class Globe {
   private resizeObserver: ResizeObserver;
   private frame = 0;
   private dirty = true;
-  private destination: Vector3 | null = null;
+  private flight: GlobeFlight | null = null;
   private host: HTMLElement;
   private label = document.createElement('div');
   private labeledCountry: Country | null = null;
@@ -145,8 +147,13 @@ export class Globe {
     this.animate();
   }
 
-  private stopFocus = (): void => { this.destination = null; };
+  private stopFocus = (): void => { this.flight = null; };
   private onCameraChange = (): void => {
+    if (this.controls) {
+      // Match rotation to altitude: a close view needs much smaller turns.
+      const altitudeRatio = (this.camera.position.length() - 1) / (this.defaultView.length() - 1);
+      this.controls.rotateSpeed = .65 * Math.max(.12, Math.min(1, altitudeRatio));
+    }
     this.dirty = true;
     this.hoverDirty = this.pointerInside;
     this.hoverAfter = performance.now() + 120;
@@ -338,30 +345,21 @@ export class Globe {
     }
     this.defaultView.setLength(Math.max(3.35, this.fittedDistance));
     if (this.camera.position.length() < this.minimumDistance) this.camera.position.setLength(this.minimumDistance);
-    if (this.destination && this.destination.length() < this.minimumDistance) this.destination.setLength(this.minimumDistance);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     if (this.flat) this.layoutFlatMap();
-    this.dirty = true;
+    this.onCameraChange();
   }
 
-  private animate = (): void => {
+  private animate = (now = performance.now()): void => {
     if (this.renderer && !this.flat) {
-      if (this.destination) {
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reducedMotion || this.camera.position.distanceTo(this.destination) < .015) {
-          this.camera.position.copy(this.destination);
-          this.destination = null;
-        } else {
-          const rotation = new Quaternion().setFromUnitVectors(
-            this.camera.position.clone().normalize(), this.destination.clone().normalize(),
-          );
-          this.camera.position.applyQuaternion(new Quaternion().slerp(rotation, .1));
-          this.camera.position.setLength(this.camera.position.length() + (this.destination.length() - this.camera.position.length()) * .1);
-        }
-        this.dirty = true;
+      if (this.flight && this.controls) {
+        const finished = this.flight.update(this.camera.position, this.controls.target, now);
+        this.camera.lookAt(this.controls.target);
+        this.onCameraChange();
+        if (finished) this.flight = null;
       }
-      if (this.controls?.update() || this.dirty) {
+      if ((!this.flight && this.controls?.update()) || this.dirty) {
         this.renderer.render(this.scene, this.camera);
         this.hoverDirty = this.pointerInside;
         this.dirty = false;
@@ -386,8 +384,21 @@ export class Globe {
   }
 
   focusCountry(country: Country): void {
-    this.destination = position(country.focus).multiplyScalar(this.camera.position.length());
-    this.controls?.target.set(0, 0, 0);
+    if (this.controls && !this.flat) {
+      const from = this.camera.position.clone();
+      const target = this.controls.target.clone();
+      const orientation = this.camera.quaternion.clone();
+      // Consume residual drag damping without moving the start of the flight.
+      const damping = this.controls.enableDamping;
+      this.controls.enableDamping = false;
+      this.controls.update();
+      this.controls.enableDamping = damping;
+      this.camera.position.copy(from);
+      this.camera.quaternion.copy(orientation);
+      this.controls.target.copy(target);
+      this.flight = new GlobeFlight(from, position(country.focus), target, performance.now(),
+        prefersReducedMotion());
+    }
     this.labeledCountry = country;
     this.labelPosition.copy(position(country.focus).multiplyScalar(1.016));
     this.labelExpiresAt = performance.now() + 6000;
@@ -401,6 +412,7 @@ export class Globe {
   }
 
   setFlatMap(flat: boolean): void {
+    this.stopFocus();
     this.flat = flat;
     this.onPointerLeave();
     if (flat) this.labeledCountry = null;
@@ -446,7 +458,7 @@ export class Globe {
   }
 
   resetView(): void {
-    this.destination = null;
+    this.stopFocus();
     this.labeledCountry = null;
     this.hoveredCountry = null;
     this.label.hidden = true;
@@ -456,7 +468,7 @@ export class Globe {
     this.camera.position.copy(this.defaultView);
     this.controls?.target.set(0, 0, 0);
     this.controls?.update();
-    this.dirty = true;
+    this.onCameraChange();
   }
 
   private updateLabel(): void {
@@ -503,6 +515,7 @@ export class Globe {
   }
 
   private disposeRenderer(): void {
+    this.stopFocus();
     this.controls?.removeEventListener('start', this.stopFocus);
     this.controls?.removeEventListener('change', this.onCameraChange);
     this.controls?.dispose();

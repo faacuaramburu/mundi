@@ -31,7 +31,7 @@ for (const country of atlas.countries) {
   await copyFile(new URL(`../node_modules/flag-icons/flags/4x3/${code}.svg`, import.meta.url), new URL(`../public/flags/${country.id}.svg`, import.meta.url));
 }
 await copyFile(new URL('../node_modules/flag-icons/LICENSE', import.meta.url), new URL('../public/flags/LICENSE', import.meta.url));
-await writeFile(new URL('../public/flags/SOURCE.md', import.meta.url), 'Country flags: flag-icons 7.5.0, https://github.com/lipis/flag-icons, MIT. ISO mapping: pinned Natural Earth source used by the atlas.\n');
+await writeFile(new URL('../public/flags/SOURCE.txt', import.meta.url), 'Country flags: flag-icons 7.5.0, https://github.com/lipis/flag-icons, MIT. ISO mapping: pinned Natural Earth source used by the atlas.\n');
 const projection = geoOrthographic().rotate([20, -10]).translate([32, 32]).scale(20).precision(1);
 const path = geoPath(projection).digits(1);
 // Simplify the existing geographic contours for legibility at favicon sizes.
@@ -53,4 +53,6 @@ function simplify(ring) {
 const land = path({type:'FeatureCollection',features});
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" color="#25272b"><path d="${land}" fill="currentColor"/><circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="2.2"/><g class="brand-orbit"><ellipse cx="32" cy="32" rx="30" ry="9" transform="rotate(-18 32 32)" stroke="currentColor" stroke-width="2.2"/></g></svg>\n`;
 await writeFile(new URL('../public/mundi.svg', import.meta.url), svg);
-console.info(`Prepared ${atlas.countries.length} local flags and the geographic globe/orbit mark`);
+await writeFile(new URL('../public/favicon-light.svg', import.meta.url), svg);
+await writeFile(new URL('../public/favicon-dark.svg', import.meta.url), svg.replace('color="#25272b"', 'color="#ffffff"'));
+console.info(`Prepared ${atlas.countries.length} local flags, the geographic globe/orbit mark and both favicon themes`);
