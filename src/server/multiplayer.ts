@@ -5,11 +5,13 @@ import type { Action, Rules, Seat } from '../shared/multiplayer.js';
 import type { Config } from './config.js';
 import { loadGeography } from './geography.js';
 import { hashCredential, RoomError, Rooms } from './rooms.js';
+import { playerNameLimit } from '../shared/profile.js';
 
 const cookieName = 'mundi-session';
 const roomParams = { type: 'object', required: ['id'], additionalProperties: false,
   properties: { id: { type: 'string', pattern: '^[A-Za-z0-9_-]{24}$' } } };
 const empty = { type: 'object', properties: {}, additionalProperties: false };
+const nameProperty = { type: 'string', maxLength: playerNameLimit };
 function session(request: FastifyRequest): string | null {
   const values = (request.headers.cookie ?? '').split(';').map(value => value.trim()).filter(value => value.startsWith(`${cookieName}=`));
   if (values.length !== 1) return null;
@@ -67,14 +69,15 @@ export async function registerMultiplayer(app: FastifyInstance, config: Config, 
       if (request.headers.origin !== config.origin) throw new RoomError('FORBIDDEN', 403);
     }
   });
-  app.post<{ Body: Rules }>('/api/rooms', { schema: { querystring: empty, body: {
+  app.post<{ Body: Rules & { name?: string } }>('/api/rooms', { schema: { querystring: empty, body: {
     type: 'object', required: ['mode', 'quota'], additionalProperties: false,
     properties: { mode: { type: 'string', enum: ['free', 'limited'] }, quota: { type: 'integer', enum: [5, 8, 10, 15] },
-      players: { type: 'integer', enum: [1, 2, 3, 4] }, play: { type: 'string', enum: ['race', 'turns'] } },
+      players: { type: 'integer', enum: [1, 2, 3, 4] }, play: { type: 'string', enum: ['race', 'turns'] }, name: nameProperty },
   } } }, async (request, reply) => {
     limit(`create:${hashCredential(request.ip)}`, 6);
     const token = session(request) ?? randomBytes(32).toString('base64url');
-    const roomId = rooms.create(hashCredential(token), request.body);
+    const { name, ...rules } = request.body;
+    const roomId = rooms.create(hashCredential(token), rules, name);
     reply.header('Set-Cookie', `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600${config.environment === 'production' ? '; Secure' : ''}`);
     return reply.code(201).send({ roomId });
   });
@@ -83,9 +86,10 @@ export async function registerMultiplayer(app: FastifyInstance, config: Config, 
     const token = session(request);
     return { roomId: token ? rooms.resumable(hashCredential(token)) : null };
   });
-  app.post<{ Params: { id: string } }>('/api/rooms/:id/join', { schema: { params: roomParams, querystring: empty, body: empty } }, async (request, reply) => {
+  app.post<{ Params: { id: string }; Body: { name?: string } }>('/api/rooms/:id/join', { schema: { params: roomParams, querystring: empty,
+    body: { type: 'object', properties: { name: nameProperty }, additionalProperties: false } } }, async (request, reply) => {
     const token = session(request) ?? randomBytes(32).toString('base64url');
-    rooms.join(request.params.id, hashCredential(token));
+    rooms.join(request.params.id, hashCredential(token), request.body.name);
     reply.header('Set-Cookie', `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600${config.environment === 'production' ? '; Secure' : ''}`);
     broadcast(request.params.id);
     return { roomId: request.params.id };

@@ -1,10 +1,11 @@
-import { countryName, foundMessage, getLanguage, guessCount, onLanguageChange, setTranslatedText, t } from './i18n.js';
+import { countryName, getLanguage, guessCount, onLanguageChange, setTranslatedText, t } from './i18n.js';
 import distanceData from '../../data/distances.json';
 import { countryNames, findCountries, formatDistance, getHint, normalizeName } from '../shared/countries.js';
 import type { Atlas, Country } from '../shared/countries.js';
 import type { Globe } from './globe.js';
 import { turnBrandOrbit } from './brand-motion.js';
 import { applyHistoryOrder } from './history-order.js';
+import { renderRoundResult } from './round-result.js';
 
 function element<T extends HTMLElement>(selector: string): T {
   const result = document.querySelector<T>(selector);
@@ -161,6 +162,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     entry.className = 'guess-entry';
     entry.dataset.distance = String(distance);
     entry.dataset.order = String(guessed.size);
+    entry.dataset.correct = String(hint.correct);
     const number = document.createElement('span');
     number.className = 'guess-number';
     number.textContent = String(guessed.size).padStart(2, '0');
@@ -182,15 +184,15 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     translateEntry();
     entry.append(number, swatch, name, label);
     history.prepend(entry);
-    applyHistoryOrder(history);
+    applyHistoryOrder(history, hint.correct);
     count.textContent = guessCount(guessed.size);
     empty.hidden = true;
     if (hint.correct) {
       finished = true;
       input.disabled = true;
       guessButton.disabled = true;
-      showFeedback(() => foundMessage(target, guessed.size));
-      feedback.classList.add('success');
+      renderFeedback = () => { renderRoundResult(feedback, target, t('win'), true); };
+      renderFeedback();
     } else {
       showFeedback(() => {
         const distanceLabel = formatDistance(distance, getLanguage());

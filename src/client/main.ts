@@ -6,10 +6,12 @@ import type { Atlas } from '../shared/countries.js';
 import { createCollection, showIndex } from './collection.js';
 import { initializeTheme } from './theme.js';
 import { initializeHistoryOrder } from './history-order.js';
+import { initializeProfile } from './profile.js';
 
 initializeLanguage();
 initializeTheme();
 initializeHistoryOrder();
+initializeProfile();
 turnBrandOrbit();
 document.querySelector('.brand')?.addEventListener('pointerenter', turnBrandOrbit);
 void fetch('/mundi.svg').then(async response => {

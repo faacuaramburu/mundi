@@ -4,7 +4,7 @@ export type Phase = 'waiting' | 'countdown' | 'playing' | 'finished';
 export type Reason = 'correct' | 'deadline' | 'quota' | 'inactive';
 export interface Rules { mode: 'free' | 'limited'; quota: 5 | 8 | 10 | 15; players?: 1 | 2 | 3 | 4; play?: 'race' | 'turns' }
 export interface Guess { countryId: string; distance: number; border: boolean; correct: boolean; band: Band }
-export interface Progress { connected: boolean; ready: boolean; rematch: boolean; count: number; remaining: number | null; bestBand: Band | null }
+export interface Progress { name: string; connected: boolean; ready: boolean; rematch: boolean; count: number; remaining: number | null; bestBand: Band | null }
 export interface Snapshot {
   type: 'snapshot'; roomId: string; seat: Seat; round: number; phase: Phase;
   rules: Rules; serverNow: number; startsAt: number | null; endsAt: number | null;

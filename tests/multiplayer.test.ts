@@ -50,6 +50,24 @@ async function rejectedUpgrade(url: string, cookie: string | undefined, requestO
 }
 afterEach(async () => { for (const client of clients.splice(0)) client.terminate(); await Promise.all(apps.splice(0).map(app => app.close())); });
 describe('private multiplayer transport', () => {
+  it('publishes names over sockets and rejects invalid profile payloads', async () => {
+    const s = await setup();
+    expect((await s.post(`/api/rooms/${s.roomId}/join`, { name: '  Facu ' }, s.cookie)).statusCode).toBe(200);
+    const guest = await s.post(`/api/rooms/${s.roomId}/join`, { name: 'Ana' });
+    const guestCookie = String(guest.headers['set-cookie']).split(';')[0]!;
+    const peer = await connect(`${s.base}/api/rooms/${s.roomId}/socket`, guestCookie);
+    const snapshot = await peer.until(m => m.type === 'snapshot') as Snapshot;
+    expect(snapshot.you.name).toBe('Ana'); expect(snapshot.opponent?.name).toBe('Facu');
+    await s.post(`/api/rooms/${s.roomId}/join`, { name: 'Facu_2' }, s.cookie);
+    await peer.until(m => m.type === 'snapshot' && m.opponent?.name === 'Facu_2');
+    for (const payload of [{ name: '<script>' }, { name: 'x'.repeat(25) }, { name: 3 }, { name: 'OK', credential: 'fake' }]) {
+      expect((await s.post(`/api/rooms/${s.roomId}/join`, payload, s.cookie)).statusCode).toBe(400);
+    }
+    const created = await s.post('/api/rooms', { mode: 'free', quota: 8, name: 'Creator' }, s.cookie);
+    const createdId = (created.json() as { roomId: string }).roomId;
+    expect(s.rooms.snapshot(createdId, 0).you.name).toBe('Creator');
+    expect(s.rooms.snapshot(createdId, 0).rules).not.toHaveProperty('name');
+  });
   it('offers only the session owner a resumable multiplayer room and expires it', async () => {
     const s = await setup();
     const resume = () => s.app.inject({ method: 'GET', url: '/api/rooms/resume', headers: { cookie: s.cookie } });

@@ -45,6 +45,7 @@
           <section id="home-screen" class="home-screen" aria-labelledby="home-title" hidden>
             <h2 id="home-title" class="home-wordmark">mundi</h2>
             <p class="home-intro" data-i18n="welcome">Choose how to play</p>
+            <div data-player-profile></div>
             <a id="home-resume" class="secondary-button resume-room" data-i18n="resumeRoom" hidden>Return to your game</a>
             <nav class="home-choices" aria-label="Game modes" data-i18n-aria="welcome">
               <a href="/?play=solo" class="home-choice"><span><strong data-i18n="singleplayer">Singleplayer</strong><small data-i18n="soloDescription">Find a country at your own pace.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
@@ -66,6 +67,7 @@
             <a id="lobby-resume" class="secondary-button resume-room" data-i18n="resumeRoom" hidden>Return to your game</a>
             <h2 id="room-title" data-i18n="playFriend">Play a friend</h2>
             <p class="room-description" data-i18n="inviteDescription">Create a private room and share the link. Both players guess the same country.</p>
+            <div data-player-profile></div>
             <form id="create-room">
               <label for="room-players" data-i18n="playerCount">Players</label><select id="room-players"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
               <label for="room-play" data-i18n="playStyle">How to play</label><select id="room-play"><option value="race" data-i18n="raceMode">Race</option><option value="turns" data-i18n="turnsMode">Take turns</option></select>
@@ -84,6 +86,7 @@
           <section id="room-session" class="room-session" aria-label="Private room" data-i18n-aria="privateGame" hidden>
             <div class="round-heading"><h2 id="round-title"></h2><time id="round-clock" class="round-clock"></time></div>
             <p id="room-rules" class="room-rule"></p>
+            <div id="session-profile" data-player-profile></div>
             <div id="invite-area">
               <label for="invite-link" data-i18n="inviteLink">Invitation link</label>
               <div class="invite-row"><input id="invite-link" type="text" readonly /><button id="copy-invite" type="button" class="secondary-button" data-i18n="copyLink">Copy</button></div>

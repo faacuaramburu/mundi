@@ -117,6 +117,12 @@ input::placeholder { color: var(--placeholder); }
 .feedback { min-height: 2.8em; margin: 20px 0 24px; color: var(--muted); font-size: max(1rem, .9em); line-height: 1.4; overflow-wrap: anywhere; }
 .feedback.success { color: var(--success-text); font-weight: 600; }
 .feedback.error { color: var(--error-text); }
+.feedback.round-result { display: grid; gap: 4px; min-height: 0; font-size: 1rem; font-weight: 400; }
+.result-title { color: var(--ink); font-size: 1rem; font-weight: 600; }
+.round-result.success .result-title { color: var(--success-text); }
+.result-country { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--muted); }
+.result-country .country-flag { width: 24px; height: 18px; margin-right: 0; }
+.result-note { margin-top: 4px; color: var(--muted); font-size: var(--meta-size); }
 .history-section { display: flex; flex-direction: column; min-height: 0; }
 .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-block: 1px solid var(--line); padding: 24px 0 12px; }
 h2 { margin: 0; font-size: inherit; font-weight: 600; }
@@ -213,6 +219,13 @@ select:disabled { opacity: .5; }
 .header-index { margin-left: auto; }
 .language-button { margin-left: 0; }
 .home-screen { margin-block: auto; padding-block: 8px; }
+.player-profile { margin-block: 20px 28px; font-size: 1rem; }
+.player-profile label { display: block; margin-bottom: 8px; font-weight: 600; }
+.profile-row { display: flex; gap: 8px; }
+.profile-row input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--field-border); border-radius: 6px; color: var(--ink); background: var(--field); }
+.profile-row .secondary-button { margin: 0; flex-shrink: 0; }
+.profile-note { margin: 8px 0 0; color: var(--muted); font-size: var(--meta-size); }
+.profile-note.error { color: var(--error-text); }
 .home-wordmark { font: 700 5rem/1 'Smooch Sans', Barlow, sans-serif; letter-spacing: -.02em; }
 .home-intro { margin: 16px 0 24px; color: var(--muted); }
 .resume-room { display: block; margin-bottom: 20px; text-align: center; text-decoration: none; }

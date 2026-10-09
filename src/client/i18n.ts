@@ -2,6 +2,14 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  profileName: ['Your name (optional)', 'Tu nombre (opcional)'],
+  profileSave: ['Save', 'Guardar'],
+  profilePlaceholder: ['Guest', 'Invitado'],
+  profileHint: ['Friends see this name. Saved in this browser.', 'Tus amigos ven este nombre. Se guarda en este navegador.'],
+  profileSaved: ['Name saved in this browser.', 'Nombre guardado en este navegador.'],
+  profileGuest: ['You will play as a guest.', 'Vas a jugar como invitado.'],
+  profileTemporary: ['Name set for this page. This browser could not save it.', 'Nombre listo para esta página. El navegador no pudo guardarlo.'],
+  profileInvalid: ['Use up to 24 letters, numbers, spaces, dots, hyphens or underscores.', 'Usá hasta 24 letras, números, espacios, puntos, guiones o guiones bajos.'],
   mapHelp: ['Drag and zoom', 'Arrastrar y acercar'],
   mapView: ['Map view', 'Vista del mapa'],
   globeView: ['Globe', 'Globo'],
@@ -25,12 +33,12 @@ const messages = {
   playerCount: ['Players', 'Jugadores'], player: ['Player', 'Jugador'],
   playStyle: ['How to play', 'Cómo jugar'], raceMode: ['Race', 'Carrera'], turnsMode: ['Take turns', 'Por turnos'],
   turnsRule: ['Shared clues. One guess per turn, 30 seconds each. Ten minutes total. Only a correct guess wins.', 'Pistas compartidas. Un intento por turno, 30 segundos cada uno. Diez minutos en total. Solo gana quien acierta.'],
-  yourTurn: ['Your turn', 'Tu turno'], turnOf: ['Turn of player', 'Turno del jugador'],
+  yourTurn: ['Your turn', 'Tu turno'], turnOf: ['Turn of', 'Turno de'],
   errorTurn: ['Wait for your turn.', 'Esperá tu turno.'],
   turnsTimeout: ['Nobody found the country. The round is a draw.', 'Nadie encontró el país. La partida termina en empate.'],
   sharedGuesses: ['Shared guesses', 'Intentos compartidos'],
   soloRule: ['Unlimited guesses, no time limit. Find the exact country to add it to your index.', 'Sin límite de intentos ni reloj. Acertá el país para sumarlo a tu índice.'],
-  progressAdded: ['Added to your country index.', 'Sumado a tu índice de países.'],
+  progressAdded: ['Country added to your index.', 'País agregado a tu índice.'],
   indexOpen: ['Explore your collection', 'Ver tu colección'],
   privateGame: ['Private game', 'Partida privada'],
   retry: ['Reconnect', 'Reconectar'],
@@ -77,6 +85,10 @@ const messages = {
   lose: ['Your opponent won', 'Ganó tu rival'],
   draw: ['Draw', 'Empate'],
   targetWas: ['The country was', 'El país era'],
+  closestResult: ['Closest guess wins.', 'Ganó el intento más cercano.'],
+  deadlineResult: ['Time is up.', 'Terminó el tiempo.'],
+  quotaResult: ['Guess limit reached.', 'Se agotaron los intentos.'],
+  inactiveResult: ['No new guesses for 60 seconds.', 'Sin intentos nuevos durante 60 segundos.'],
   reasonCorrect: ['First correct guess.', 'Primer acierto.'],
   reasonDeadline: ['Time is up. Closest guess wins; ties use guess number, then server arrival.', 'Terminó el tiempo. Gana el más cercano; empates por número de intento y orden de llegada al servidor.'],
   reasonQuota: ['Everyone used all guesses. Closest guess wins; ties use guess number, then server arrival.', 'Todos agotaron los intentos. Gana el más cercano; empates por número de intento y orden de llegada al servidor.'],
@@ -151,8 +163,9 @@ export function countryName(country: Country): string { return language === 'es'
 export function guessCount(count: number): string {
   return `${count} ${language === 'es' ? count === 1 ? 'intento' : 'intentos' : count === 1 ? 'guess' : 'guesses'}`;
 }
-export function foundMessage(country: Country, count: number): string {
-  return language === 'es' ? `¡Encontraste ${countryName(country)} en ${guessCount(count)}! ¿Jugamos otra vez?` : `You found ${countryName(country)} in ${guessCount(count)}! Ready for another journey?`;
+export function winnerMessage(player: number, count: number, name = ''): string {
+  const label = name || (language === 'es' ? `El jugador ${player}` : `Player ${player}`);
+  return language === 'es' ? `${label} ganó en ${guessCount(count)}` : `${label} won in ${guessCount(count)}`;
 }
 export function onLanguageChange(listener: () => void): () => void {
   listeners.add(listener);

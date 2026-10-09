@@ -3,12 +3,14 @@ import { formatDistance, getHint } from '../shared/countries.js';
 import type { Action, ErrorCode, Guess, Rules, ServerMessage, Snapshot } from '../shared/multiplayer.js';
 import type { Globe } from './globe.js';
 import { bindCountryInput } from './country-input.js';
-import { countryName, getLanguage, guessCount, onLanguageChange, setTranslatedText, t } from './i18n.js';
+import { countryName, getLanguage, guessCount, onLanguageChange, setTranslatedText, t, winnerMessage } from './i18n.js';
 import type { Message } from './i18n.js';
 import { turnBrandOrbit } from './brand-motion.js';
 import { countryFlag } from './flags.js';
 import type { Collection } from './collection.js';
 import { applyHistoryOrder } from './history-order.js';
+import { renderRoundResult } from './round-result.js';
+import { getPlayerName, onProfileChange } from './profile.js';
 
 const element = <T extends HTMLElement>(id: string): T => document.querySelector<T>(`#${id}`)!;
 function errorMessage(code: ErrorCode): Message {
@@ -39,9 +41,11 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   let stopped = false; let disposed = false; let attempts = 0; let retryTimer = 0; let pendingTimer = 0;
   let receivedAt = 0; let pending = false; let lastRound = 0; let painted = 0; let revealedRound = 0;
   let error: Message | null = null;
+  let newDiscovery = false;
   const isConnected = () => socket?.readyState === WebSocket.OPEN && !stopped;
   const serverTime = () => snapshot ? snapshot.serverNow + performance.now() - receivedAt : 0;
   const clock = (ms: number) => { const seconds = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; };
+  const playerLabel = (s: Snapshot, seat: number) => s.players.at(seat)?.name || `${t('player')} ${seat + 1}`;
   function showError(key: Message): void { error = key; render(); }
   function updateClock(): void {
     if (!snapshot) return;
@@ -49,7 +53,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     element('round-clock').textContent = snapshot.phase === 'countdown' ? String(Math.max(0, Math.ceil((snapshot.startsAt! - now) / 1000)))
       : snapshot.phase === 'playing' && snapshot.endsAt !== null ? clock(snapshot.endsAt - now) : '';
     element('turn-status').textContent = snapshot.phase === 'playing' && snapshot.turn !== null
-      ? `${snapshot.turn === snapshot.seat ? t('yourTurn') : `${t('turnOf')} ${snapshot.turn + 1}`} · ${clock(snapshot.turnEndsAt! - now)}` : '';
+      ? `${snapshot.turn === snapshot.seat ? t('yourTurn') : `${t('turnOf')} ${playerLabel(snapshot, snapshot.turn)}`} · ${clock(snapshot.turnEndsAt! - now)}` : '';
     element('idle-clock').hidden = true;
     const canGuess = isConnected() && !pending && snapshot.phase === 'playing'
       && (snapshot.endsAt === null || now < snapshot.endsAt) && (snapshot.you.remaining === null || snapshot.you.remaining > 0)
@@ -62,6 +66,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       const country = countries.get(guess.countryId); if (!country) return;
       const entry = document.createElement('li'); entry.className = 'guess-entry';
       entry.dataset.distance = String(guess.distance); entry.dataset.order = String(index + 1);
+      entry.dataset.correct = String(guess.correct);
       const number = document.createElement('span'); number.className = 'guess-number'; number.textContent = String(index + 1).padStart(2, '0');
       const swatch = document.createElement('span'); swatch.className = 'guess-swatch'; swatch.setAttribute('aria-hidden', 'true');
       swatch.style.backgroundColor = getHint(guess.distance, guess.correct, guess.border).color;
@@ -71,7 +76,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       hint.textContent = formatDistance(guess.distance, getLanguage()) + (guess.correct ? ` · ${t('correct')}` : guess.border ? ` · ${t('border')}` : '');
       entry.append(number, swatch, name, hint); node.prepend(entry);
     });
-    if (node.id === 'guess-history') applyHistoryOrder(node);
+    if (node.id === 'guess-history') applyHistoryOrder(node, guesses.at(-1)?.correct ?? false);
   }
   function render(): void {
     feedback.className = 'feedback';
@@ -83,12 +88,13 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     }
     const s = snapshot;
     const solo = s.rules.players === 1;
-    const compact = solo || s.phase === 'playing';
+    const compact = solo || s.phase === 'playing' || s.phase === 'finished';
     document.querySelector<HTMLElement>('.round-heading')!.hidden = solo;
     element('round-title').hidden = compact;
     element('room-rules').hidden = compact;
+    element('session-profile').hidden = solo || s.phase !== 'waiting';
     element('you-progress').hidden = compact;
-    document.querySelector<HTMLElement>('.player-lines')!.hidden = solo;
+    document.querySelector<HTMLElement>('.player-lines')!.hidden = solo || s.phase === 'finished';
     const allConnected = s.players.every(player => player?.connected);
     lobby.hidden = true; sessionPanel.hidden = false;
     setTranslatedText(element('mode-label'), solo ? 'singleplayer' : s.rules.play === 'turns' ? 'turnsMode' : 'privateGame');
@@ -102,12 +108,12 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       const remainingText = player.remaining === 1 && getLanguage() === 'es' ? 'disponible' : t('remaining');
       return `${label} · ${state} · ${guessCount(player.count)}${player.remaining === null ? '' : ` · ${player.remaining} ${remainingText}`}${player.bestBand ? ` · ${t(player.bestBand)}` : ''}`;
     };
-    element('you-progress').textContent = progress(t('you'), s.you);
+    element('you-progress').textContent = progress(s.you.name ? `${s.you.name} (${t('you')})` : t('you'), s.you);
     const opponents = element('opponent-progress'); opponents.replaceChildren(); opponents.hidden = solo;
     s.players.forEach((player, seat) => {
       if (seat === s.seat) return;
       const line = document.createElement('span'); line.className = 'player-progress';
-      line.textContent = compact && player ? `${t('player')} ${seat + 1} · ${guessCount(player.count)}` : progress(`${t('player')} ${seat + 1}`, player); opponents.append(line);
+      line.textContent = compact && player ? `${playerLabel(s, seat)} · ${guessCount(player.count)}` : progress(playerLabel(s, seat), player); opponents.append(line);
     });
     readyButton.hidden = solo || s.phase !== 'waiting';
     readyButton.disabled = !isConnected() || pending || !allConnected;
@@ -125,7 +131,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       const others = element('opponent-history'); others.replaceChildren();
       s.result.histories.forEach((guesses, seat) => {
         if (seat === s.seat) return;
-        const group = document.createElement('li'); const title = document.createElement('h3'); title.textContent = `${t('player')} ${seat + 1}`;
+        const group = document.createElement('li'); const title = document.createElement('h3'); title.textContent = playerLabel(s, seat);
         const list = document.createElement('ol'); list.className = 'guess-history'; renderHistory(list, guesses); group.append(title, list); others.append(group);
       });
     }
@@ -134,12 +140,18 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     else if (s.result) {
       const country = countries.get(s.result.targetId)!;
       const outcome = s.result.winner === null ? 'draw' : s.result.winner === s.seat ? 'win' : 'lose';
-      const reason: Message = s.result.reason === 'correct' ? 'reasonCorrect' : s.result.reason === 'quota' ? 'reasonQuota' : s.result.reason === 'inactive' ? 'reasonInactive' : 'reasonDeadline';
-      const rule = s.rules.play === 'turns' && s.result.reason !== 'correct' ? t('turnsTimeout') : t(reason);
-      const found = s.result.histories.at(s.seat)?.some(guess => guess.correct);
-      feedback.textContent = `${t(outcome)}. ${t('targetWas')} ${countryName(country)}. ${rule}${s.you.rematch && !solo ? ` ${t('rematchWaiting')}` : ''}${found ? ` ${t(collection.canSave ? 'progressAdded' : 'storageUnavailable')}` : ''}`;
-      feedback.prepend(countryFlag(country));
-      feedback.classList.toggle('success', outcome === 'win');
+      const winner = s.result.winner;
+      const headline = outcome === 'lose' && winner !== null
+        ? winnerMessage(winner + 1, s.result.histories.at(winner)?.length ?? 0, s.players.at(winner)?.name) : t(outcome);
+      const notes: string[] = [];
+      if (s.result.reason !== 'correct') {
+        notes.push(t(winner !== null ? 'closestResult' : s.result.reason === 'quota' ? 'quotaResult'
+          : s.result.reason === 'inactive' ? 'inactiveResult' : 'deadlineResult'));
+      }
+      if (s.you.rematch && !solo) notes.push(t('rematchWaiting'));
+      if (newDiscovery) notes.push(t('progressAdded'));
+      if (s.result.histories.at(s.seat)?.some(guess => guess.correct) && !collection.canSave) notes.push(t('storageUnavailable'));
+      renderRoundResult(feedback, country, headline, outcome === 'win', notes.join(' '));
     } else if (s.phase === 'waiting') feedback.textContent = allConnected ? t('ready') : t('waiting');
     else if (s.phase === 'countdown') feedback.textContent = t('startCountdown');
     else if (s.you.remaining === 0) feedback.textContent = t('quotaSpent');
@@ -171,14 +183,14 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       }
       if (message.type !== 'snapshot') return;
       attempts = 0; pending = false; window.clearTimeout(pendingTimer);
-      if (message.round !== lastRound) { globe.clear(); painted = 0; lastRound = message.round; error = null; }
+      if (message.round !== lastRound) { globe.clear(); painted = 0; lastRound = message.round; error = null; newDiscovery = false; }
       const added = message.guesses.slice(painted);
       for (const guess of added) { const country = countries.get(guess.countryId); if (country) globe.paint(country, getHint(guess.distance, guess.correct, guess.border).color); }
       if (added.length) turnBrandOrbit();
       if (message.result && revealedRound !== message.round) {
         const target = countries.get(message.result.targetId);
         if (target) globe.paint(target, getHint(0, true, false).color);
-        if (message.result.histories.at(message.seat)?.some(guess => guess.correct)) collection.add(message.result.targetId);
+        if (message.result.histories.at(message.seat)?.some(guess => guess.correct)) newDiscovery = collection.add(message.result.targetId);
         revealedRound = message.round;
       }
       painted = message.guesses.length;
@@ -205,7 +217,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     }
   }
   async function request(url: string, body: object): Promise<{ roomId: string }> {
-    const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000) });
+    const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, name: getPlayerName() }), signal: AbortSignal.timeout(10_000) });
     const data = await response.json() as { roomId: string; error?: ErrorCode };
     if (!response.ok) { showError(errorMessage(data.error ?? 'INVALID_REQUEST')); throw new Error('Room request rejected'); }
     return data;
@@ -266,16 +278,20 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       });
   }
   const unsubscribe = onLanguageChange(render);
+  const unsubscribeProfile = onProfileChange(() => {
+    if (!roomId || disposed || snapshot?.phase !== 'waiting') return;
+    void request(`/api/rooms/${roomId}/join`, {}).catch(() => { if (!error) showError('errorGeneric'); });
+  });
   const clockTimer = window.setInterval(updateClock, 200);
   const leavePage = () => {
     disposed = true; socket?.close(); window.clearInterval(clockTimer);
-    window.clearTimeout(retryTimer); window.clearTimeout(pendingTimer);
+    window.clearTimeout(retryTimer); window.clearTimeout(pendingTimer); unsubscribeProfile();
   };
   const restorePage = (event: PageTransitionEvent) => { if (event.persisted) location.reload(); };
   window.addEventListener('pagehide', leavePage);
   window.addEventListener('pageshow', restorePage);
   if (import.meta.hot) import.meta.hot.dispose(() => {
     window.removeEventListener('pagehide', leavePage); window.removeEventListener('pageshow', restorePage);
-    disposed = true; socket?.close(); window.clearInterval(clockTimer); window.clearTimeout(retryTimer); window.clearTimeout(pendingTimer); unsubscribe(); unbind();
+    disposed = true; socket?.close(); window.clearInterval(clockTimer); window.clearTimeout(retryTimer); window.clearTimeout(pendingTimer); unsubscribe(); unsubscribeProfile(); unbind();
   });
 }

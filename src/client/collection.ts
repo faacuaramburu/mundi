@@ -22,11 +22,14 @@ export function createCollection(atlas: Atlas) {
   const collection = {
     get ids(): ReadonlySet<string> { return ids; },
     get canSave(): boolean { return storageAvailable; },
-    add(id: string): void {
-      if (!validIds.has(id)) return;
-      mergeSaved(); ids.add(id);
+    add(id: string): boolean {
+      if (!validIds.has(id)) return false;
+      mergeSaved();
+      const isNew = !ids.has(id);
+      ids.add(id);
       try { localStorage.setItem(key, JSON.stringify([...ids])); storageAvailable = true; } catch { storageAvailable = false; }
       for (const listener of listeners) listener();
+      return isNew && storageAvailable;
     },
     subscribe(listener: () => void): () => void { listeners.add(listener); return () => { listeners.delete(listener); }; },
   };

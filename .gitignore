@@ -18,7 +18,4 @@ Thumbs.db
 work/
 
 # Local design references, captures, and engine state.
-.impeccable/*
-!.impeccable/config.json
-!.impeccable/design.json
-!.impeccable/surfaces/
+.impeccable/

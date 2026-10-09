@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Rooms, RoomError, proximityBand } from '../src/server/rooms.js';
 import type { Rules, Seat } from '../src/shared/multiplayer.js';
 import { parseCollection } from '../src/shared/collection.js';
+import { normalizePlayerName } from '../src/shared/profile.js';
 
 const ids = ['ARG', 'BRA', 'FRA', 'URY', 'CHL', 'PER', 'BOL', 'COL', 'ECU', 'CAN', 'MEX', 'USA'];
 function game(rules: Rules) {
@@ -30,6 +31,30 @@ function reject(action: () => void, expected: string) {
   expect((rejected as RoomError).code).toBe(expected);
 }
 describe('expanded play', () => {
+  it('shares normalized names, permits lobby edits and retains them during play and rematch', () => {
+    const s = game({ players: 2, mode: 'free', quota: 8 });
+    s.rooms.join(s.id, 'p0', '  José  M. '); s.rooms.join(s.id, 'p1', 'Lucía_2');
+    expect(s.snapshot().players.map(player => player?.name)).toEqual(['José M.', 'Lucía_2']);
+    expect(s.snapshot(1).opponent?.name).toBe('José M.');
+    s.rooms.join(s.id, 'p0'); expect(s.snapshot().you.name).toBe('José M.');
+    s.start(); s.rooms.join(s.id, 'p0', 'Different');
+    expect(s.snapshot().you.name).toBe('José M.');
+    s.guess(1, 'ARG');
+    s.rooms.action(s.id, 0, { type: 'rematch', value: true, round: 1 });
+    s.rooms.action(s.id, 1, { type: 'rematch', value: true, round: 1 });
+    expect(s.snapshot().players.map(player => player?.name)).toEqual(['José M.', 'Lucía_2']);
+    expect(JSON.stringify(s.snapshot())).not.toMatch(/credential|p0|p1/);
+  });
+  it('rejects markup, control characters, invisible names and oversized names', () => {
+    const s = game({ players: 2, mode: 'free', quota: 8 });
+    for (const name of ['<img src=x>', 'Joe\nAdmin', 'Joe\u200b', 'x'.repeat(25)]) {
+      expect(normalizePlayerName(name)).toBeNull();
+      reject(() => s.rooms.join(s.id, 'p0', name), 'INVALID_REQUEST');
+    }
+    expect(normalizePlayerName('')).toBe('');
+    expect(normalizePlayerName('Ｆａｃｕ')).toBe('Facu');
+    expect(s.snapshot().you.name).toBe('');
+  });
   it('solo keeps targets private, has no guess deadline and supports a new round', () => {
     const s = game({ players: 1, mode: 'free', quota: 8 }); s.start();
     expect(s.snapshot().endsAt).toBeNull(); expect(s.snapshot().players).toHaveLength(1);

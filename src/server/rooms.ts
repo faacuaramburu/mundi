@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import type { Action, Band, ErrorCode, Guess, Phase, Progress, Reason, Rules, Seat, Snapshot } from '../shared/multiplayer.js';
+import { normalizePlayerName } from '../shared/profile.js';
 
 export interface Geography {
   ids: string[];
@@ -7,7 +8,7 @@ export interface Geography {
 }
 interface Accepted extends Guess { order: number }
 interface Player {
-  credential: string; connected: boolean; ready: boolean; rematch: boolean;
+  credential: string; name: string; connected: boolean; ready: boolean; rematch: boolean;
   guesses: Accepted[]; rate: { since: number; count: number };
 }
 interface Room {
@@ -21,7 +22,12 @@ export class RoomError extends Error {
   constructor(public readonly code: ErrorCode, public readonly status = 409) { super(code); }
 }
 export const hashCredential = (token: string): string => createHash('sha256').update(token).digest('hex');
-const newPlayer = (credential: string): Player => ({ credential, connected: false, ready: false, rematch: false, guesses: [], rate: { since: 0, count: 0 } });
+const newPlayer = (credential: string, name: string): Player => ({ credential, name, connected: false, ready: false, rematch: false, guesses: [], rate: { since: 0, count: 0 } });
+function playerName(value: string): string {
+  const name = normalizePlayerName(value);
+  if (name === null) throw new RoomError('INVALID_REQUEST', 400);
+  return name;
+}
 function publicGuess(guess: Accepted): Guess {
   return { countryId: guess.countryId, distance: guess.distance, correct: guess.correct, border: guess.border, band: guess.band };
 }
@@ -34,7 +40,8 @@ export class Rooms {
     private readonly choose = (ids: string[]) => ids[randomInt(ids.length)]!,
     private readonly capacity = 200) {}
 
-  create(credential: string, rules: Rules): string {
+  create(credential: string, rules: Rules, displayName = ''): string {
+    const name = playerName(displayName);
     this.tick();
     const count = rules.players ?? 2;
     if (![1, 2, 3, 4].includes(count) || (rules.play && !['race', 'turns'].includes(rules.play))
@@ -47,7 +54,7 @@ export class Rooms {
       throw new RoomError('CAPACITY', 429);
     }
     const id = randomBytes(18).toString('base64url');
-    this.rooms.set(id, { id, rules: { ...rules, players: count, play: rules.play ?? 'race' }, players: Array.from({ length: count }, (_, index) => index === 0 ? newPlayer(credential) : null), phase: 'waiting', round: 1,
+    this.rooms.set(id, { id, rules: { ...rules, players: count, play: rules.play ?? 'race' }, players: Array.from({ length: count }, (_, index) => index === 0 ? newPlayer(credential, name) : null), phase: 'waiting', round: 1,
       target: null, previousTarget: null, startsAt: null, endsAt: null, idleEndsAt: null,
       expiresAt: this.now() + 30 * 60_000, order: 0, result: null, turn: null, turnEndsAt: null });
     return id;
@@ -62,13 +69,19 @@ export class Rooms {
     return rooms.find(room => room.players.length > 1 && room.expiresAt > this.now()
       && room.players.some(player => player?.credential === credential))?.id ?? null;
   }
-  join(id: string, credential: string): Seat {
+  join(id: string, credential: string, displayName?: string): Seat {
+    const name = displayName === undefined ? undefined : playerName(displayName);
     const room = this.room(id);
     const current = room.players.findIndex(player => player?.credential === credential);
-    if (current >= 0) return current as Seat;
+    if (current >= 0) {
+      // Names can be edited in the lobby; a running round keeps its player labels.
+      const player = room.players.at(current)!;
+      if (name !== undefined && room.phase === 'waiting') player.name = name;
+      return current as Seat;
+    }
     const empty = room.players.findIndex(player => !player);
     if (empty < 0 || room.phase !== 'waiting') throw new RoomError('ROOM_FULL');
-    room.players.splice(empty, 1, newPlayer(credential));
+    room.players.splice(empty, 1, newPlayer(credential, name ?? ''));
     return empty as Seat;
   }
   seat(id: string, credential: string): Seat {
@@ -193,7 +206,7 @@ export class Rooms {
     this.advance(room);
     const player = room.players.at(seat);
     if (!player) throw new RoomError('UNAUTHORIZED', 401);
-    const progress = (other: Player): Progress => ({ connected: other.connected, ready: other.ready, rematch: other.rematch,
+    const progress = (other: Player): Progress => ({ name: other.name, connected: other.connected, ready: other.ready, rematch: other.rematch,
       count: other.guesses.length, remaining: room.rules.mode === 'free' ? null : room.rules.quota - other.guesses.length,
       bestBand: best(other)?.band ?? null });
     const opponent = room.players.at(seat === 0 ? 1 : 0);
