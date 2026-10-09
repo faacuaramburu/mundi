@@ -136,7 +136,8 @@ export class Rooms {
   }
   private begin(room: Room): void {
     room.target = this.choose(this.geography.ids.filter(id => id !== room.previousTarget));
-    room.phase = 'countdown'; room.startsAt = this.now() + 3000;
+    const solo = room.players.length === 1;
+    room.phase = solo ? 'playing' : 'countdown'; room.startsAt = this.now() + (solo ? 0 : 3000);
     room.endsAt = room.players.length === 1 ? null : room.startsAt + (room.rules.play === 'turns' ? 600_000 : 180_000);
     room.idleEndsAt = room.rules.mode === 'limited' && room.rules.play !== 'turns' ? room.startsAt + 60_000 : null;
     room.turn = room.rules.play === 'turns' ? ((room.round - 1) % room.players.length) as Seat : null;

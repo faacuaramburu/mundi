@@ -75,6 +75,20 @@ describe('private multiplayer transport', () => {
     const s = await setup(true); const response = await s.post(`/api/rooms/${s.roomId}/join`, {}, s.cookie);
     expect(response.headers['set-cookie']).toContain('; Secure');
   });
+  it('starts solo immediately and accepts guesses without a countdown', async () => {
+    const s = await setup();
+    const created = await s.post('/api/rooms', { mode: 'free', quota: 8, players: 1 }, s.cookie);
+    const id = (created.json() as { roomId: string }).roomId;
+    const peer = await connect(`${s.base}/api/rooms/${id}/socket`, s.cookie);
+    peer.socket.send(JSON.stringify({ type: 'ready', value: true, round: 1 }));
+    const playing = await peer.until(m => m.type === 'snapshot' && m.phase === 'playing') as Snapshot;
+    expect(playing.startsAt).toBe(playing.serverNow); expect(playing.endsAt).toBeNull();
+    peer.socket.send(JSON.stringify({ type: 'guess', countryId: 'ARG', round: 1 }));
+    await peer.until(m => m.type === 'snapshot' && m.phase === 'finished');
+    peer.socket.send(JSON.stringify({ type: 'rematch', value: true, round: 1 }));
+    const next = await peer.until(m => m.type === 'snapshot' && m.round === 2) as Snapshot;
+    expect(next.phase).toBe('playing');
+  });
   it('resumes an active game with the same seat, guesses, quota and deadline', async () => {
     const s = await setup();
     const guest = await s.post(`/api/rooms/${s.roomId}/join`, {});
