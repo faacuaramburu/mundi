@@ -28,10 +28,13 @@ export class Globe {
   private markers = new Map<string, Mesh<SphereGeometry, MeshBasicMaterial>>();
   private resizeObserver: ResizeObserver;
   private frame = 0;
+  private restoreQualityAt = 0;
   private dirty = true;
   private destination: Vector3 | null = null;
   private host: HTMLElement;
-  private defaultView = position([-55, 15]).multiplyScalar(3.15);
+  private minimumDistance = 1.25;
+  private fittedDistance = 3.2;
+  private defaultView = position([-55, 15]).multiplyScalar(3.35);
 
   constructor(host: HTMLElement, atlas: Atlas) {
     this.host = host;
@@ -58,7 +61,7 @@ export class Globe {
 
     if (this.renderer) {
       const renderer = this.renderer;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       renderer.setClearColor(0x000000, 0);
       renderer.domElement.className = 'globe-canvas';
       setTranslatedAria(renderer.domElement, 'globeControls');
@@ -69,10 +72,11 @@ export class Globe {
       this.controls = new OrbitControls(this.camera, renderer.domElement);
       this.controls.enableDamping = true;
       this.controls.enablePan = false;
-      this.controls.minDistance = 2;
+      this.controls.minDistance = this.minimumDistance;
       this.controls.maxDistance = 5;
       this.controls.rotateSpeed = .65;
       this.controls.addEventListener('start', this.stopFocus);
+      this.controls.addEventListener('end', this.finishInteraction);
       this.scene.add(new Mesh(
         new SphereGeometry(1, 80, 64),
         new MeshStandardMaterial({ map: this.texture, roughness: 1, metalness: 0 }),
@@ -100,7 +104,21 @@ export class Globe {
     this.animate();
   }
 
-  private stopFocus = (): void => { this.destination = null; };
+  private stopFocus = (): void => {
+    this.destination = null;
+    this.restoreQualityAt = 0;
+    this.setPixelRatio(1);
+  };
+
+  private finishInteraction = (): void => {
+    this.restoreQualityAt = performance.now() + 250;
+  };
+
+  private setPixelRatio(ratio: number): void {
+    if (!this.renderer || this.renderer.getPixelRatio() === ratio) return;
+    this.renderer.setPixelRatio(ratio);
+    this.dirty = true;
+  }
 
   private onContextLost = (event: Event): void => {
     event.preventDefault();
@@ -136,6 +154,17 @@ export class Globe {
     this.camera.aspect = width / height;
     // Fit the globe's width on tall, narrow columns as well as its height.
     this.camera.fov = 2 * Math.atan(Math.tan(19 * Math.PI / 180) / Math.min(1, this.camera.aspect)) * 180 / Math.PI;
+    const verticalHalfAngle = this.camera.fov * Math.PI / 360;
+    const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+    // Include the atmosphere and a margin within both edges of the canvas.
+    this.fittedDistance = 1.012 * 1.03 / Math.sin(Math.min(verticalHalfAngle, horizontalHalfAngle));
+    if (this.controls) {
+      this.controls.minDistance = this.minimumDistance;
+      this.controls.maxDistance = Math.max(5, this.fittedDistance * 1.5);
+    }
+    this.defaultView.setLength(Math.max(3.35, this.fittedDistance));
+    if (this.camera.position.length() < this.minimumDistance) this.camera.position.setLength(this.minimumDistance);
+    if (this.destination && this.destination.length() < this.minimumDistance) this.destination.setLength(this.minimumDistance);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     this.dirty = true;
@@ -143,6 +172,10 @@ export class Globe {
 
   private animate = (): void => {
     if (this.renderer) {
+      if (this.restoreQualityAt && performance.now() >= this.restoreQualityAt) {
+        this.restoreQualityAt = 0;
+        this.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      }
       if (this.destination) {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reducedMotion || this.camera.position.distanceTo(this.destination) < .015) {
@@ -153,7 +186,7 @@ export class Globe {
             this.camera.position.clone().normalize(), this.destination.clone().normalize(),
           );
           this.camera.position.applyQuaternion(new Quaternion().slerp(rotation, .1));
-          this.camera.position.setLength(this.camera.position.length() + (3.1 - this.camera.position.length()) * .1);
+          this.camera.position.setLength(this.camera.position.length() + (this.destination.length() - this.camera.position.length()) * .1);
         }
         this.dirty = true;
       }
@@ -176,7 +209,7 @@ export class Globe {
   }
 
   focusCountry(country: Country): void {
-    this.destination = position(country.focus).multiplyScalar(3.1);
+    this.destination = position(country.focus).multiplyScalar(this.fittedDistance);
     this.dirty = true;
   }
 
@@ -207,6 +240,7 @@ export class Globe {
 
   private disposeRenderer(): void {
     this.controls?.removeEventListener('start', this.stopFocus);
+    this.controls?.removeEventListener('end', this.finishInteraction);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.onContextLost);
     this.renderer?.dispose();

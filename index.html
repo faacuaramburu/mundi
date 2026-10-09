@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,6 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <title>Mundi</title>
     <link rel="icon" type="image/svg+xml" href="/mundi.svg" />
+    <link rel="stylesheet" href="/src/client/style.css" />
+    <script src="/theme.js"></script>
     <script type="module" src="/src/client/main.ts"></script>
   </head>
   <body>
@@ -18,6 +20,11 @@
         </a>
         <h1 id="mode-label" class="mode-label">Mundi</h1>
         <a class="header-index text-link" href="/?view=index" data-i18n="countryIndex">Country index</a>
+        <button id="theme-toggle" class="theme-button" type="button" aria-pressed="false" aria-label="Switch to dark mode" data-i18n-aria="enableDarkMode">
+          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" /></svg>
+          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
+          <span id="theme-label" data-i18n="darkMode">Dark mode</span>
+        </button>
         <button id="language-toggle" class="language-button" type="button">Español</button>
       </header>
       <main class="game-layout">

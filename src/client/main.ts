@@ -1,12 +1,13 @@
-import './style.css';
 import atlasUrl from '../../data/atlas.json?url';
 import { initializeLanguage, setTranslatedText } from './i18n.js';
 import { turnBrandOrbit } from './brand-motion.js';
 import { Globe } from './globe.js';
 import type { Atlas } from '../shared/countries.js';
 import { createCollection, showIndex } from './collection.js';
+import { initializeTheme } from './theme.js';
 
 initializeLanguage();
+initializeTheme();
 turnBrandOrbit();
 document.querySelector('.brand')?.addEventListener('pointerenter', turnBrandOrbit);
 void fetch('/mundi.svg').then(async response => {
