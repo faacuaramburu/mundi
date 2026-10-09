@@ -34,6 +34,7 @@ const messages = {
   indexOpen: ['Explore your collection', 'Ver tu colección'],
   privateGame: ['Private game', 'Partida privada'],
   retry: ['Reconnect', 'Reconectar'],
+  resumeRoom: ['Return to your game', 'Volver a la partida'],
   reload: ['Reload', 'Recargar'],
   mapError: ['The map could not load. Check your connection and reload.', 'No se pudo cargar el mapa. Revisá tu conexión y recargá.'],
   playFriend: ['Play with friends', 'Jugá con amigos'],

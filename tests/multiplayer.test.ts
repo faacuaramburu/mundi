@@ -50,6 +50,19 @@ async function rejectedUpgrade(url: string, cookie: string | undefined, requestO
 }
 afterEach(async () => { for (const client of clients.splice(0)) client.terminate(); await Promise.all(apps.splice(0).map(app => app.close())); });
 describe('private multiplayer transport', () => {
+  it('offers only the session owner a resumable multiplayer room and expires it', async () => {
+    const s = await setup();
+    const resume = () => s.app.inject({ method: 'GET', url: '/api/rooms/resume', headers: { cookie: s.cookie } });
+    const owned = await resume();
+    expect(owned.json()).toEqual({ roomId: s.roomId });
+    expect(owned.headers['cache-control']).toBe('no-store');
+    expect((await s.app.inject({ method: 'GET', url: '/api/rooms/resume' })).json()).toEqual({ roomId: null });
+    const stranger = await s.post('/api/rooms', { mode: 'free', quota: 8, players: 1 });
+    const strangerCookie = String(stranger.headers['set-cookie']).split(';')[0]!;
+    expect((await s.app.inject({ method: 'GET', url: '/api/rooms/resume', headers: { cookie: strangerCookie } })).json()).toEqual({ roomId: null });
+    s.move(30 * 60_000);
+    expect((await resume()).json()).toEqual({ roomId: null });
+  });
   it('creates random invitations with protected cookies, reserves seats and restores a session', async () => {
     const s = await setup(); expect(s.roomId).toMatch(/^[A-Za-z0-9_-]{24}$/);
     const restored = await s.post(`/api/rooms/${s.roomId}/join`, {}, s.cookie); expect(restored.statusCode).toBe(200);
@@ -61,6 +74,26 @@ describe('private multiplayer transport', () => {
   it('uses Secure session cookies in production', async () => {
     const s = await setup(true); const response = await s.post(`/api/rooms/${s.roomId}/join`, {}, s.cookie);
     expect(response.headers['set-cookie']).toContain('; Secure');
+  });
+  it('resumes an active game with the same seat, guesses, quota and deadline', async () => {
+    const s = await setup();
+    const guest = await s.post(`/api/rooms/${s.roomId}/join`, {});
+    const guestCookie = String(guest.headers['set-cookie']).split(';')[0]!;
+    const url = `${s.base}/api/rooms/${s.roomId}/socket`;
+    const first = await connect(url, s.cookie); const second = await connect(url, guestCookie);
+    first.socket.send(JSON.stringify({ type: 'ready', value: true, round: 1 }));
+    second.socket.send(JSON.stringify({ type: 'ready', value: true, round: 1 }));
+    await first.until(m => m.type === 'snapshot' && m.phase === 'countdown');
+    s.move(3000); first.socket.send(JSON.stringify({ type: 'guess', countryId: 'BRA', round: 1 }));
+    const before = await first.until(m => m.type === 'snapshot' && m.you.count === 1) as Snapshot;
+    const closed = new Promise(resolve => first.socket.once('close', resolve)); first.socket.close(); await closed;
+    const resume = await s.app.inject({ method: 'GET', url: '/api/rooms/resume', headers: { cookie: s.cookie } });
+    expect(resume.json()).toEqual({ roomId: s.roomId });
+    await s.post(`/api/rooms/${s.roomId}/join`, {}, s.cookie);
+    const restored = await connect(url, s.cookie);
+    const after = await restored.until(m => m.type === 'snapshot') as Snapshot;
+    expect(after.seat).toBe(before.seat); expect(after.guesses).toEqual(before.guesses);
+    expect(after.you.remaining).toBe(7); expect(after.endsAt).toBe(before.endsAt);
   });
   it('rejects extra fields/coercion and untrusted or absent mutation origins', async () => {
     const s = await setup();

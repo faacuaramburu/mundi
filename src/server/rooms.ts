@@ -57,6 +57,11 @@ export class Rooms {
     if (!room || room.expiresAt <= this.now()) throw new RoomError('ROOM_GONE', 404);
     return room;
   }
+  resumable(credential: string): string | null {
+    const rooms = [...this.rooms.values()].reverse();
+    return rooms.find(room => room.players.length > 1 && room.expiresAt > this.now()
+      && room.players.some(player => player?.credential === credential))?.id ?? null;
+  }
   join(id: string, credential: string): Seat {
     const room = this.room(id);
     const current = room.players.findIndex(player => player?.credential === credential);

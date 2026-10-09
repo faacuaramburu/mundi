@@ -23,6 +23,18 @@ void fetch('/mundi.svg').then(async response => {
 
 const params = new URLSearchParams(location.search);
 const isHome = !params.has('room') && !params.has('play') && !params.has('view') && !(import.meta.env.DEV && (params.has('practice') || params.has('target')));
+if (isHome || params.get('play') === 'multi') {
+  void fetch('/api/rooms/resume', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(5000) })
+    .then(async response => {
+      if (!response.ok) return;
+      const result: unknown = await response.json();
+      if (!result || typeof result !== 'object' || !('roomId' in result)
+        || typeof result.roomId !== 'string' || !/^[A-Za-z0-9_-]{24}$/.test(result.roomId)) return;
+      const link = document.querySelector<HTMLAnchorElement>(isHome ? '#home-resume' : '#lobby-resume')!;
+      link.href = `/?room=${result.roomId}`;
+      link.hidden = false;
+    }).catch(() => { /* New games remain available when resume cannot be checked. */ });
+}
 if (isHome) {
   document.querySelector<HTMLElement>('#home-screen')!.hidden = false;
   document.querySelector<HTMLElement>('#feedback')!.hidden = true;

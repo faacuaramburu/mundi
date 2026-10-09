@@ -214,6 +214,7 @@ select:disabled { opacity: .5; }
 .home-screen { margin-block: auto; padding-block: 8px; }
 .home-wordmark { font: 700 5rem/1 'Smooch Sans', Barlow, sans-serif; letter-spacing: -.02em; }
 .home-intro { margin: 16px 0 24px; color: var(--muted); }
+.resume-room { display: block; margin-bottom: 20px; text-align: center; text-decoration: none; }
 .home-choices { border-top: 1px solid var(--line); }
 .home-choice { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 88px; padding: 20px 0; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; }
 .home-choice strong { display: block; font-weight: 600; font-size: 1.35rem; }

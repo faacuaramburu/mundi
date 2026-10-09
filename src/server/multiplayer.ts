@@ -78,6 +78,11 @@ export async function registerMultiplayer(app: FastifyInstance, config: Config, 
     reply.header('Set-Cookie', `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600${config.environment === 'production' ? '; Secure' : ''}`);
     return reply.code(201).send({ roomId });
   });
+  app.get('/api/rooms/resume', { schema: { querystring: empty } }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    const token = session(request);
+    return { roomId: token ? rooms.resumable(hashCredential(token)) : null };
+  });
   app.post<{ Params: { id: string } }>('/api/rooms/:id/join', { schema: { params: roomParams, querystring: empty, body: empty } }, async (request, reply) => {
     const token = session(request) ?? randomBytes(32).toString('base64url');
     rooms.join(request.params.id, hashCredential(token));

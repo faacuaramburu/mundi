@@ -267,7 +267,15 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   }
   const unsubscribe = onLanguageChange(render);
   const clockTimer = window.setInterval(updateClock, 200);
+  const leavePage = () => {
+    disposed = true; socket?.close(); window.clearInterval(clockTimer);
+    window.clearTimeout(retryTimer); window.clearTimeout(pendingTimer);
+  };
+  const restorePage = (event: PageTransitionEvent) => { if (event.persisted) location.reload(); };
+  window.addEventListener('pagehide', leavePage);
+  window.addEventListener('pageshow', restorePage);
   if (import.meta.hot) import.meta.hot.dispose(() => {
+    window.removeEventListener('pagehide', leavePage); window.removeEventListener('pageshow', restorePage);
     disposed = true; socket?.close(); window.clearInterval(clockTimer); window.clearTimeout(retryTimer); window.clearTimeout(pendingTimer); unsubscribe(); unbind();
   });
 }
