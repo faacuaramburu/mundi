@@ -3,6 +3,7 @@ import distanceData from '../../data/distances.json';
 import { countryNames, findCountries, formatDistance, getHint, normalizeName } from '../shared/countries.js';
 import type { Atlas, Country } from '../shared/countries.js';
 import type { Globe } from './globe.js';
+import { turnBrandOrbit } from './brand-motion.js';
 
 function element<T extends HTMLElement>(selector: string): T {
   const result = document.querySelector<T>(selector);
@@ -55,8 +56,6 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
   form.hidden = false;
   element<HTMLElement>('#practice-actions').hidden = false;
   setTranslatedText(element<HTMLElement>('#mode-label'), 'practice');
-  setTranslatedText(element<HTMLElement>('#round-label'), 'find');
-  setTranslatedText(element<HTMLElement>('#practice-notice'), 'practiceNotice');
   renderFeedback();
   count.textContent = guessCount(0);
 
@@ -156,6 +155,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     const hint = getHint(distance, country.id === target.id, country.neighbors.includes(target.id));
     guessed.add(country.id);
     globe.paint(country, hint.color);
+    turnBrandOrbit();
     const entry = document.createElement('li');
     entry.className = 'guess-entry';
     const number = document.createElement('span');

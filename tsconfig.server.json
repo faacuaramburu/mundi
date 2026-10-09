@@ -12,8 +12,8 @@
     "noUnusedParameters": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "rootDir": "src/server",
-    "outDir": "dist/server",
+    "rootDir": "src",
+    "outDir": "dist",
     "sourceMap": false
   },
   "include": ["src/server/**/*.ts"]

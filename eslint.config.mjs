@@ -13,7 +13,7 @@ export default tseslint.config(
     rules: { 'security/detect-object-injection': 'off' },
   },
   {
-    files: ['scripts/prepare-geography.ts'],
+    files: ['scripts/prepare-geography.ts', 'src/server/geography.ts'],
     // Every filesystem URL is a fixed repository path, never supplied by users.
     rules: { 'security/detect-non-literal-fs-filename': 'off' },
   },

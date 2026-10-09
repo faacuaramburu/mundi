@@ -31,7 +31,7 @@ export class Globe {
   private dirty = true;
   private destination: Vector3 | null = null;
   private host: HTMLElement;
-  private defaultView = position([-55, -15]).multiplyScalar(3.7);
+  private defaultView = position([-55, 15]).multiplyScalar(3.15);
 
   constructor(host: HTMLElement, atlas: Atlas) {
     this.host = host;
@@ -112,18 +112,18 @@ export class Globe {
 
   private drawMap(): void {
     const ctx = this.context;
-    ctx.fillStyle = '#254953';
+    ctx.fillStyle = '#174f7b';
     ctx.fillRect(0, 0, this.map.width, this.map.height);
     ctx.lineWidth = .5;
-    ctx.strokeStyle = '#375954';
+    ctx.strokeStyle = '#d1d8c5';
     for (const path of this.backgroundPaths) {
-      ctx.fillStyle = '#82958c';
+      ctx.fillStyle = '#82947a';
       ctx.fill(path);
       ctx.stroke(path);
     }
     for (const country of this.atlas.countries) {
       const path = this.paths.get(country.id)!;
-      ctx.fillStyle = this.colors.get(country.id) ?? '#a4b49b';
+      ctx.fillStyle = this.colors.get(country.id) ?? '#9eae8b';
       ctx.fill(path);
       ctx.stroke(path);
     }
@@ -134,6 +134,8 @@ export class Globe {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.camera.aspect = width / height;
+    // Fit the globe's width on tall, narrow columns as well as its height.
+    this.camera.fov = 2 * Math.atan(Math.tan(19 * Math.PI / 180) / Math.min(1, this.camera.aspect)) * 180 / Math.PI;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     this.dirty = true;
@@ -169,8 +171,23 @@ export class Globe {
     if (marker) marker.material.color = new Color(color);
     this.drawMap();
     this.texture.needsUpdate = true;
+    this.focusCountry(country);
+    this.dirty = true;
+  }
+
+  focusCountry(country: Country): void {
     this.destination = position(country.focus).multiplyScalar(3.1);
     this.dirty = true;
+  }
+
+  showCollection(ids: ReadonlySet<string>): void {
+    this.colors.clear();
+    for (const country of this.atlas.countries) {
+      const color = ids.has(country.id) ? '#419b72' : '#667273';
+      this.colors.set(country.id, color);
+      this.markers.get(country.id)?.material.color.set(color);
+    }
+    this.drawMap(); this.texture.needsUpdate = true; this.resetView();
   }
 
   clear(): void {

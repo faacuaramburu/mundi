@@ -4,7 +4,7 @@ import { loadConfig } from '../src/server/config.js';
 describe('configuration', () => {
   it('defaults to local-only development', () => {
     expect(loadConfig({})).toEqual({
-      environment: 'development', host: '127.0.0.1', port: 3000, origin: 'http://localhost:3000',
+      environment: 'development', host: '127.0.0.1', port: 3000, origin: 'http://127.0.0.1:5173',
     });
   });
 

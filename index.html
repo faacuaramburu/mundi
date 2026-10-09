@@ -3,48 +3,110 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Find the mystery country. A private geography race for two friends." />
+    <meta name="description" content="Find the mystery country. Play solo or with friends and complete your world." />
     <meta name="referrer" content="no-referrer" />
-    <title>Globle MP</title>
+    <title>Mundi</title>
+    <link rel="icon" type="image/svg+xml" href="/mundi.svg" />
     <script type="module" src="/src/client/main.ts"></script>
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="Globle MP home" data-i18n-aria="home"><span class="brand-icon" aria-hidden="true">◎</span> globle<span class="brand-mp">MP</span></a>
-        <div class="topbar-meta"><button id="language-toggle" class="language-button" type="button">Español</button><span id="mode-label" class="mode-badge" data-i18n="development">IN DEVELOPMENT</span><span id="server-status" class="server-status" data-i18n="connecting" role="status">Connecting…</span></div>
+        <a class="brand" href="/" aria-label="Mundi home" data-i18n-aria="home">
+          <span id="brand-mark" aria-hidden="true"><img class="brand-symbol" src="/mundi.svg" alt="" /></span>
+          <span class="brand-wordmark">mundi</span>
+        </a>
+        <h1 id="mode-label" class="mode-label">Mundi</h1>
+        <a class="header-index text-link" href="/?view=index" data-i18n="countryIndex">Country index</a>
+        <button id="language-toggle" class="language-button" type="button">Español</button>
       </header>
       <main class="game-layout">
-        <section class="game-panel" aria-labelledby="game-title">
-          <div class="round-label"><span class="small-dot"></span><span id="round-label" data-i18n="worldClue">THE WORLD IS YOUR CLUE</span></div>
-          <h1 id="game-title" data-i18n="title">A little closer.<br /> A world away.</h1>
-          <p class="intro" data-i18n="intro">One country is hiding in plain sight.<br />Every guess gets you closer.</p>
-          <div class="practice-notice" id="practice-notice" data-i18n="notice">The globe is ready. Private 1v1 rooms are coming next.</div>
+        <section class="globe-panel" aria-label="Interactive world globe" data-i18n-aria="globe">
+          <div id="globe-host" class="globe-host"><p class="loading-globe" data-i18n="loading">Loading the world…</p></div>
+          <div class="globe-toolbar">
+            <div class="globe-controls">
+              <span class="pointer-help" aria-hidden="true"><svg viewBox="0 0 24 32" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="2" width="16" height="27" rx="8" /><path d="M12 2v9" /></svg></span>
+              <p id="globe-help" class="globe-help" data-i18n="help">Rotate and zoom</p>
+              <button id="reset-view" class="view-button" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20 10a8 8 0 0 0-14-5L3 8m0-5v5h5M4 14a8 8 0 0 0 14 5l3-3m0 5v-5h-5" /></svg>
+                <span data-i18n="reset">Reset view</span>
+              </button>
+            </div>
+            <div class="legend" aria-label="Proximity color legend" data-i18n-aria="legend"><span data-i18n="far">Far</span><div class="legend-colors" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span data-i18n="near">Near</span></div>
+          </div>
+          <footer class="globe-footer"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a><span id="server-status" class="server-status" data-i18n="connecting" role="status">Connecting…</span></footer>
+        </section>
+        <section class="game-panel" aria-label="Country guesses" data-i18n-aria="playPanel">
+          <section id="home-screen" class="home-screen" aria-labelledby="home-title" hidden>
+            <h2 id="home-title" class="home-wordmark">mundi</h2>
+            <p class="home-intro" data-i18n="welcome">Choose how to play</p>
+            <nav class="home-choices" aria-label="Game modes" data-i18n-aria="welcome">
+              <a href="/?play=solo" class="home-choice"><span><strong data-i18n="singleplayer">Singleplayer</strong><small data-i18n="soloDescription">Find a country at your own pace.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
+              <a href="/?play=multi" class="home-choice"><span><strong data-i18n="multiplayer">Multiplayer</strong><small data-i18n="multiDescription">Private games for 2–4 friends.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
+            </nav>
+            <a href="/?view=index" class="home-index"><span data-i18n="countryIndex">Country index</span><span id="home-count">0 / 195</span></a>
+            <p class="room-rule" data-i18n="indexDescription">Your world, one discovery at a time.</p>
+          </section>
+          <section id="country-index" class="country-index" aria-labelledby="index-title" hidden>
+            <div class="section-heading"><h2 id="index-title" data-i18n="countryIndex">Country index</h2><span id="index-count">0 / 195</span></div>
+            <progress id="index-progress" value="0" max="195" aria-label="Countries found" data-i18n-aria="foundCountries"></progress>
+            <p id="storage-note" class="room-rule" data-i18n="localProgress">Saved in this browser.</p>
+            <label for="index-search" data-i18n="searchIndex">Search countries</label><input id="index-search" type="search" maxlength="80" />
+            <label for="index-filter" data-i18n="indexFilter">Show countries</label><select id="index-filter"><option value="all" data-i18n="allCountries">All countries</option><option value="found" data-i18n="foundCountries">Found countries</option><option value="missing" data-i18n="missingCountries">Still to find</option></select>
+            <p id="index-empty" class="room-rule" hidden></p><ul id="index-countries" class="index-countries"></ul>
+            <a href="/?play=solo" class="secondary-button index-play" data-i18n="singleplayer">Singleplayer</a>
+          </section>
+          <section id="room-lobby" class="room-lobby" aria-labelledby="room-title" hidden>
+            <h2 id="room-title" data-i18n="playFriend">Play a friend</h2>
+            <p class="room-description" data-i18n="inviteDescription">Create a private room and share the link. Both players guess the same country.</p>
+            <form id="create-room">
+              <label for="room-players" data-i18n="playerCount">Players</label><select id="room-players"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+              <label for="room-play" data-i18n="playStyle">How to play</label><select id="room-play"><option value="race" data-i18n="raceMode">Race</option><option value="turns" data-i18n="turnsMode">Take turns</option></select>
+              <label for="room-mode" data-i18n="gameMode">Mode</label>
+              <select id="room-mode"><option value="limited" data-i18n="limitedMode">Limited guesses</option><option value="free" data-i18n="freeMode">Unlimited guesses</option></select>
+              <div id="quota-field"><label for="room-quota" data-i18n="quotaLabel">Guesses per player</label><select id="room-quota"><option>5</option><option selected>8</option><option>10</option><option>15</option></select></div>
+              <p id="race-rule" class="room-rule" data-i18n="threeMinutes">Three minutes. The first correct guess wins.</p>
+              <p id="turns-rule" class="room-rule" data-i18n="turnsRule" hidden>Shared clues. One guess per turn.</p>
+              <p id="limited-rule" class="room-rule" data-i18n="limitedRule">Also ends after 60 seconds without new guesses, or when both quotas are used.</p>
+              <button id="create-button" class="guess-button" type="submit" data-i18n="createRoom">Create room</button>
+            </form>
+            <button id="join-room" class="guess-button" type="button" data-i18n="joinRoom" hidden>Join room</button>
+            <a id="room-home" href="/" class="text-link" data-i18n="createAnother" hidden>Create another room</a>
+            <a id="practice-link" class="text-link" href="/?practice=1" data-i18n="practice" hidden>Practice</a>
+          </section>
+          <section id="room-session" class="room-session" aria-label="Private room" data-i18n-aria="privateGame" hidden>
+            <div class="round-heading"><h2 id="round-title"></h2><time id="round-clock" class="round-clock"></time></div>
+            <p id="room-rules" class="room-rule"></p>
+            <div id="invite-area">
+              <label for="invite-link" data-i18n="inviteLink">Invitation link</label>
+              <div class="invite-row"><input id="invite-link" type="text" readonly /><button id="copy-invite" type="button" class="secondary-button" data-i18n="copyLink">Copy</button></div>
+            </div>
+            <div class="player-lines"><p id="you-progress"></p><p id="opponent-progress"></p></div>
+            <p id="turn-status" class="turn-status" role="status"></p>
+            <p id="idle-clock" class="room-rule"></p>
+            <button id="ready-button" class="guess-button" type="button" data-i18n="ready">I'm ready</button>
+            <button id="rematch-button" class="secondary-button" type="button" data-i18n="rematch" hidden>Play again</button>
+            <button id="reconnect-button" class="secondary-button" type="button" data-i18n="retry" hidden>Reconnect</button>
+            <div class="session-links"><a href="/" class="text-link" data-i18n="leaveRoom">Leave room</a><a href="/?view=index" class="text-link" data-i18n="indexOpen">Explore your collection</a></div>
+          </section>
           <form id="guess-form" class="guess-form" autocomplete="off" hidden>
-            <label for="country-input" data-i18n="explore">Where do you want to explore?</label>
+            <label for="country-input" data-i18n="explore">Country</label>
             <div class="input-row">
-              <input id="country-input" type="text" maxlength="80" placeholder="Try a country…" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="country-options" spellcheck="false" />
-              <button id="guess-button" data-i18n="guess" class="guess-button" type="submit">Guess <span aria-hidden="true">↗</span></button>
+              <input id="country-input" type="text" maxlength="80" placeholder="Enter a country" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="country-options" aria-describedby="feedback" spellcheck="false" />
+              <button id="guess-button" data-i18n="guess" class="guess-button" type="submit">Guess</button>
             </div>
             <ul id="country-options" class="country-options" role="listbox" aria-label="Country suggestions" data-i18n-aria="suggestions" hidden></ul>
           </form>
-          <p id="feedback" data-i18n="controls" class="feedback" role="status" aria-live="polite">Drag to explore. Scroll or pinch to zoom.</p>
-          <div id="practice-actions" class="practice-actions" hidden><button id="new-round" data-i18n="newRound" type="button" class="text-button">New mystery country <span aria-hidden="true">↻</span></button></div>
-          <section class="history-section" aria-labelledby="history-title">
-            <div class="section-heading"><h2 id="history-title" data-i18n="history">Your explorations</h2><span id="guess-count">0 guesses</span></div>
-            <div id="empty-history" class="empty-history"><span aria-hidden="true">↗</span><p data-i18n="empty">Every journey starts<br />with a first guess.</p></div>
+          <p id="feedback" class="feedback" data-i18n="loading" role="status" aria-live="polite">Loading the world…</p>
+          <section class="history-section" aria-labelledby="history-title" hidden>
+            <div class="section-heading"><h2 id="history-title" data-i18n="history">Guesses</h2><span id="guess-count">0 guesses</span></div>
+            <div id="empty-history" class="empty-history"><p data-i18n="empty">You haven't made any guesses yet.</p></div>
             <ol id="guess-history" class="guess-history"></ol>
           </section>
-        </section>
-        <section class="globe-panel" aria-label="Interactive world globe" data-i18n-aria="globe">
-          <div class="globe-topline"><span class="globe-caption" data-i18n="caption">A WHOLE WORLD TO DISCOVER</span><button id="reset-view" class="view-button" type="button" aria-label="Reset globe view" data-i18n-aria="reset">◎ <span data-i18n="reset">Reset view</span></button></div>
-          <div id="globe-host" class="globe-host"><p class="loading-globe" data-i18n="loading">Loading the world…</p></div>
-          <p id="globe-help" data-i18n="help" class="globe-help"><span aria-hidden="true">↔</span> Drag to rotate <span class="help-divider">·</span> Pinch or scroll to zoom</p>
-          <div class="legend" aria-label="Proximity color legend" data-i18n-aria="legend"><span data-i18n="far">Far away</span><div class="legend-colors" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><span data-i18n="near">Getting closer</span></div>
-          <p class="border-note" data-i18n="borderNote">A shared land border? You’ll know you’re right next door.</p>
+          <details id="opponent-results" class="opponent-results" hidden><summary data-i18n="opponentGuesses">Opponent's guesses</summary><ol id="opponent-history" class="guess-history"></ol></details>
+          <div id="practice-actions" class="practice-actions" hidden><button id="new-round" data-i18n="newRound" type="button" class="new-round-button">New round</button></div>
         </section>
       </main>
-      <footer class="footer"><span data-i18n="footer">Explore a little. Learn a lot.</span><span><span data-i18n="made">Made with</span> <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a><span class="footer-dot">·</span><span data-i18n="accounts">No accounts. Just geography.</span></span></footer>
     </div>
   </body>
 </html>

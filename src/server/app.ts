@@ -1,10 +1,13 @@
 import Fastify from 'fastify';
 import helmet from '@fastify/helmet';
 import staticFiles from '@fastify/static';
+import websocket from '@fastify/websocket';
 import { fileURLToPath } from 'node:url';
 import type { Config } from './config.js';
+import { registerMultiplayer } from './multiplayer.js';
+import type { Rooms } from './rooms.js';
 
-export function createApp(config: Config, serveClient = true) {
+export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
   const production = config.environment === 'production';
   const app = Fastify({
     logger: false,
@@ -18,6 +21,8 @@ export function createApp(config: Config, serveClient = true) {
     },
   });
 
+  app.server.maxConnections = 512;
+  app.register(websocket, { options: { maxPayload: 1024, perMessageDeflate: false } });
   app.register(helmet, {
     contentSecurityPolicy: {
       useDefaults: false,
@@ -56,27 +61,39 @@ export function createApp(config: Config, serveClient = true) {
     reply.code(404).send({ error: 'NOT_FOUND' });
   });
 
-  app.get('/health', {
-    schema: {
-      querystring: { type: 'object', properties: {}, additionalProperties: false },
-      response: {
-        200: {
-          type: 'object',
-          properties: { status: { type: 'string', const: 'ok' } },
-          required: ['status'],
-          additionalProperties: false,
+  app.register(async (scope) => {
+    scope.addHook('onRequest', async (request, reply) => {
+      if (!request.headers.upgrade) return;
+      if (request.headers.origin !== config.origin) {
+        await reply.code(403).send({ error: 'FORBIDDEN' });
+      } else if (!/^\/api\/rooms\/[A-Za-z0-9_-]{24}\/socket$/.test(request.url)) {
+        await reply.code(404).send({ error: 'NOT_FOUND' });
+      }
+    });
+    scope.get('/health', {
+      schema: {
+        querystring: { type: 'object', properties: {}, additionalProperties: false },
+        response: {
+          200: {
+            type: 'object',
+            properties: { status: { type: 'string', const: 'ok' } },
+            required: ['status'],
+            additionalProperties: false,
+          },
         },
       },
-    },
-  }, async () => ({ status: 'ok' }));
+    }, async () => ({ status: 'ok' }));
 
-  if (serveClient) {
-    app.register(staticFiles, {
-      root: fileURLToPath(new URL('../client/', import.meta.url)),
-      dotfiles: 'deny',
-      index: ['index.html'],
-    });
-  }
+    scope.register(async (roomScope) => { await registerMultiplayer(roomScope, config, rooms); });
+
+    if (serveClient) {
+      scope.register(staticFiles, {
+        root: fileURLToPath(new URL('../client/', import.meta.url)),
+        dotfiles: 'deny',
+        index: ['index.html'],
+      });
+    }
+  });
 
   return app;
 }
