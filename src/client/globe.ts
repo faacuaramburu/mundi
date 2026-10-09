@@ -1,7 +1,7 @@
 import { setTranslatedAria, setTranslatedText } from './i18n.js';
 import {
-  AmbientLight, BackSide, CanvasTexture, Color, DirectionalLight, Mesh,
-  MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, Quaternion, Scene,
+  AmbientLight, CanvasTexture, DirectionalLight, Mesh,
+  MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Quaternion, Scene,
   SphereGeometry, SRGBColorSpace, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -28,7 +28,6 @@ export class Globe {
   private markers = new Map<string, Mesh<SphereGeometry, MeshBasicMaterial>>();
   private resizeObserver: ResizeObserver;
   private frame = 0;
-  private restoreQualityAt = 0;
   private dirty = true;
   private destination: Vector3 | null = null;
   private host: HTMLElement;
@@ -51,7 +50,7 @@ export class Globe {
     this.texture.colorSpace = SRGBColorSpace;
 
     try {
-      this.renderer = new WebGLRenderer({ antialias: true, alpha: true });
+      this.renderer = new WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
     } catch {
       setTranslatedAria(this.map, 'map');
       this.host.replaceChildren(this.map);
@@ -61,7 +60,7 @@ export class Globe {
 
     if (this.renderer) {
       const renderer = this.renderer;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      renderer.setPixelRatio(1);
       renderer.setClearColor(0x000000, 0);
       renderer.domElement.className = 'globe-canvas';
       setTranslatedAria(renderer.domElement, 'globeControls');
@@ -76,23 +75,24 @@ export class Globe {
       this.controls.maxDistance = 5;
       this.controls.rotateSpeed = .65;
       this.controls.addEventListener('start', this.stopFocus);
-      this.controls.addEventListener('end', this.finishInteraction);
       this.scene.add(new Mesh(
         new SphereGeometry(1, 80, 64),
-        new MeshStandardMaterial({ map: this.texture, roughness: 1, metalness: 0 }),
+        new MeshLambertMaterial({ map: this.texture }),
       ));
       this.scene.add(new AmbientLight(0xffffff, 2.4));
       const sunlight = new DirectionalLight(0xfffae9, 2.2);
       sunlight.position.set(-2, 4, 4);
       this.scene.add(sunlight);
-      this.scene.add(new Mesh(new SphereGeometry(1.012, 64, 48), new MeshBasicMaterial({
-        color: '#7daba8', transparent: true, opacity: .13, side: BackSide,
-      })));
-      const tiny = new Set(['VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT', 'SGP', 'BHR', 'NRU', 'TUV', 'MDV']);
+      const tiny = new Set([
+        'VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT', 'SGP', 'BHR',
+        'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'BHS',
+        'CPV', 'COM', 'MUS', 'SYC', 'STP', 'MDV', 'NRU', 'TUV',
+        'KIR', 'MHL', 'FSM', 'PLW', 'WSM', 'TON',
+      ]);
       for (const country of atlas.countries) {
         if (!tiny.has(country.id)) continue;
-        const marker = new Mesh(new SphereGeometry(.0055, 10, 8), new MeshBasicMaterial({ color: '#a8b898' }));
-        marker.position.copy(position(country.focus).multiplyScalar(1.004));
+        const marker = new Mesh(new SphereGeometry(.008, 10, 8), new MeshBasicMaterial({ color: '#a8b898' }));
+        marker.position.copy(position(country.focus).multiplyScalar(1.008));
         this.markers.set(country.id, marker);
         this.scene.add(marker);
       }
@@ -104,21 +104,7 @@ export class Globe {
     this.animate();
   }
 
-  private stopFocus = (): void => {
-    this.destination = null;
-    this.restoreQualityAt = 0;
-    this.setPixelRatio(1);
-  };
-
-  private finishInteraction = (): void => {
-    this.restoreQualityAt = performance.now() + 250;
-  };
-
-  private setPixelRatio(ratio: number): void {
-    if (!this.renderer || this.renderer.getPixelRatio() === ratio) return;
-    this.renderer.setPixelRatio(ratio);
-    this.dirty = true;
-  }
+  private stopFocus = (): void => { this.destination = null; };
 
   private onContextLost = (event: Event): void => {
     event.preventDefault();
@@ -172,10 +158,6 @@ export class Globe {
 
   private animate = (): void => {
     if (this.renderer) {
-      if (this.restoreQualityAt && performance.now() >= this.restoreQualityAt) {
-        this.restoreQualityAt = 0;
-        this.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-      }
       if (this.destination) {
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reducedMotion || this.camera.position.distanceTo(this.destination) < .015) {
@@ -201,7 +183,7 @@ export class Globe {
   paint(country: Country, color: string): void {
     this.colors.set(country.id, color);
     const marker = this.markers.get(country.id);
-    if (marker) marker.material.color = new Color(color);
+    if (marker) marker.material.color.set('#ffffff');
     this.drawMap();
     this.texture.needsUpdate = true;
     this.focusCountry(country);
@@ -240,7 +222,6 @@ export class Globe {
 
   private disposeRenderer(): void {
     this.controls?.removeEventListener('start', this.stopFocus);
-    this.controls?.removeEventListener('end', this.finishInteraction);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.onContextLost);
     this.renderer?.dispose();
