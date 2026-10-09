@@ -1,6 +1,6 @@
 import { countryName, setTranslatedAria, setTranslatedText } from './i18n.js';
 import {
-  AmbientLight, CanvasTexture, DirectionalLight, Mesh,
+  AmbientLight, CanvasTexture, Color, DirectionalLight, InstancedMesh, Matrix4, Mesh,
   MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Quaternion, Raycaster, Scene,
   Sphere, SphereGeometry, SRGBColorSpace, Vector2, Vector3, WebGLRenderer,
 } from 'three';
@@ -25,7 +25,8 @@ export class Globe {
   private camera = new PerspectiveCamera(38, 1, 0.1, 20);
   private controls: OrbitControls | null = null;
   private texture: CanvasTexture;
-  private markers = new Map<string, Mesh<SphereGeometry, MeshBasicMaterial>>();
+  private markers = new Map<string, { position: Vector3; index: number }>();
+  private markerLayer: InstancedMesh<SphereGeometry, MeshBasicMaterial> | null = null;
   private resizeObserver: ResizeObserver;
   private frame = 0;
   private dirty = true;
@@ -42,6 +43,7 @@ export class Globe {
   private pointer = new Vector2();
   private pointerInside = false;
   private hoverDirty = false;
+  private hoverAfter = 0;
   private collectionMode = false;
   private raycaster = new Raycaster();
   private surface = new Sphere(new Vector3(), 1);
@@ -98,6 +100,7 @@ export class Globe {
       this.controls.maxDistance = 5;
       this.controls.rotateSpeed = .65;
       this.controls.addEventListener('start', this.stopFocus);
+      this.controls.addEventListener('change', this.onCameraChange);
       this.scene.add(new Mesh(
         new SphereGeometry(1, 80, 64),
         new MeshLambertMaterial({ map: this.texture }),
@@ -112,13 +115,15 @@ export class Globe {
         'CPV', 'COM', 'MUS', 'SYC', 'STP', 'MDV', 'NRU', 'TUV',
         'KIR', 'MHL', 'FSM', 'PLW', 'WSM', 'TON',
       ]);
-      for (const country of atlas.countries) {
-        if (!tiny.has(country.id)) continue;
-        const marker = new Mesh(new SphereGeometry(.004, 10, 8), new MeshBasicMaterial({ color: '#667273' }));
-        marker.position.copy(position(country.focus).multiplyScalar(1.004));
-        this.markers.set(country.id, marker);
-        this.scene.add(marker);
+      const smallCountries = atlas.countries.filter(country => tiny.has(country.id));
+      this.markerLayer = new InstancedMesh(new SphereGeometry(.004, 10, 8), new MeshBasicMaterial(), smallCountries.length);
+      for (const [index, country] of smallCountries.entries()) {
+        const anchor = position(country.focus).multiplyScalar(1.004);
+        this.markers.set(country.id, { position: anchor, index });
+        this.markerLayer.setMatrixAt(index, new Matrix4().makeTranslation(anchor.x, anchor.y, anchor.z));
+        this.markerLayer.setColorAt(index, new Color('#667273'));
       }
+      this.scene.add(this.markerLayer);
       this.drawMap();
       this.texture.needsUpdate = true;
     }
@@ -141,6 +146,11 @@ export class Globe {
   }
 
   private stopFocus = (): void => { this.destination = null; };
+  private onCameraChange = (): void => {
+    this.dirty = true;
+    this.hoverDirty = this.pointerInside;
+    this.hoverAfter = performance.now() + 120;
+  };
 
   private centerRotation = (event: PointerEvent): void => {
     if (event.button !== 0 || !this.controls) return;
@@ -228,7 +238,8 @@ export class Globe {
   private countryAt(longitude: number, latitude: number): Country | null {
     const x = (longitude + 180) / 360 * this.map.width;
     const y = (90 - latitude) / 180 * this.map.height;
-    return this.atlas.countries.find(country => this.context.isPointInPath(this.paths.get(country.id)!, x, y)) ?? null;
+    return this.atlas.countries.find(country => (this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id))
+      && this.context.isPointInPath(this.paths.get(country.id)!, x, y)) ?? null;
   }
 
   private updateHover(): void {
@@ -356,7 +367,7 @@ export class Globe {
         this.dirty = false;
       }
     }
-    if (this.hoverDirty) this.updateHover();
+    if (this.hoverDirty && performance.now() >= this.hoverAfter) this.updateHover();
     this.updateLabel();
     if (this.renderer) this.frame = requestAnimationFrame(this.animate);
   };
@@ -364,7 +375,10 @@ export class Globe {
   paint(country: Country, color: string): void {
     this.colors.set(country.id, color);
     const marker = this.markers.get(country.id);
-    if (marker) marker.material.color.set(color);
+    if (marker && this.markerLayer) {
+      this.markerLayer.setColorAt(marker.index, new Color(color));
+      this.markerLayer.instanceColor!.needsUpdate = true;
+    }
     this.drawMap();
     this.texture.needsUpdate = true;
     this.focusCountry(country);
@@ -415,14 +429,17 @@ export class Globe {
     for (const country of this.atlas.countries) {
       const color = ids.has(country.id) ? '#419b72' : '#667273';
       this.colors.set(country.id, color);
-      this.markers.get(country.id)?.material.color.set(color);
+      const marker = this.markers.get(country.id);
+      if (marker && this.markerLayer) this.markerLayer.setColorAt(marker.index, new Color(color));
     }
+    if (this.markerLayer?.instanceColor) this.markerLayer.instanceColor.needsUpdate = true;
     this.drawMap(); this.texture.needsUpdate = true; this.dirty = true;
   }
 
   clear(): void {
     this.colors.clear();
-    for (const marker of this.markers.values()) marker.material.color.set('#667273');
+    for (const marker of this.markers.values()) this.markerLayer?.setColorAt(marker.index, new Color('#667273'));
+    if (this.markerLayer?.instanceColor) this.markerLayer.instanceColor.needsUpdate = true;
     this.drawMap();
     this.texture.needsUpdate = true;
     this.resetView();
@@ -487,6 +504,7 @@ export class Globe {
 
   private disposeRenderer(): void {
     this.controls?.removeEventListener('start', this.stopFocus);
+    this.controls?.removeEventListener('change', this.onCameraChange);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.onContextLost);
     this.renderer?.domElement.removeEventListener('pointerdown', this.centerRotation);
@@ -501,6 +519,7 @@ export class Globe {
     this.resizeObserver.disconnect();
     this.disposeRenderer();
     this.texture.dispose();
+    this.markerLayer?.dispose();
     this.scene.traverse((object) => {
       if (object instanceof Mesh) {
         object.geometry.dispose();
