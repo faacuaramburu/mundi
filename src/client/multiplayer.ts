@@ -12,6 +12,7 @@ import { applyHistoryOrder } from './history-order.js';
 import { renderRoundResult } from './round-result.js';
 import { getPlayerName, onProfileChange } from './profile.js';
 import { animateGuess, animateRoundResult } from './game-motion.js';
+import { roomApiPath } from './room-path.js';
 
 const element = <T extends HTMLElement>(id: string): T => document.querySelector<T>(`#${id}`)!;
 function errorMessage(code: ErrorCode): Message {
@@ -172,7 +173,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   function connect(): void {
     if (!roomId || disposed) return;
     stopped = false; reconnectButton.hidden = true;
-    const url = new URL(`/api/rooms/${roomId}/socket`, location.origin); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = new URL(`${roomApiPath(roomId)}/socket`, location.origin); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const current = new WebSocket(url); socket = current;
     current.addEventListener('message', event => {
       if (current !== socket || disposed) return;
@@ -219,7 +220,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   }
   async function recover(): Promise<void> {
     if (disposed || stopped || !roomId) return;
-    try { await request(`/api/rooms/${roomId}/join`, {}); error = null; connect(); }
+    try { await request(`${roomApiPath(roomId)}/join`, {}); error = null; connect(); }
     catch {
       if (error === 'errorGone' || error === 'errorSession' || error === 'errorFull' || error === 'errorOrigin' || error === 'errorRate' || attempts >= 8) { stopped = true; render(); }
       else retryTimer = window.setTimeout(() => { attempts++; void recover(); }, Math.min(15_000, 1000 * 2 ** attempts));
@@ -232,6 +233,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     return data;
   }
   function enter(id: string): void {
+    roomApiPath(id);
     roomId = id; error = null;
     feedback.textContent = t('connecting');
     const url = new URL(location.href); url.search = ''; url.searchParams.set('room', id); history.replaceState(null, '', url);
@@ -239,7 +241,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   }
   async function join(): Promise<void> {
     joinButton.disabled = true; joinButton.textContent = t('joiningRoom');
-    try { const data = await request(`/api/rooms/${roomId}/join`, {}); enter(data.roomId); }
+    try { const data = await request(`${roomApiPath(roomId)}/join`, {}); enter(data.roomId); }
     catch { if (!error) showError('errorGeneric'); } finally { joinButton.disabled = false; joinButton.textContent = t('joinRoom'); }
   }
   function updateRules(): void {
@@ -289,7 +291,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   const unsubscribe = onLanguageChange(render);
   const unsubscribeProfile = onProfileChange(() => {
     if (!roomId || disposed || snapshot?.phase !== 'waiting') return;
-    void request(`/api/rooms/${roomId}/join`, {}).catch(() => { if (!error) showError('errorGeneric'); });
+    void request(`${roomApiPath(roomId)}/join`, {}).catch(() => { if (!error) showError('errorGeneric'); });
   });
   const clockTimer = window.setInterval(updateClock, 200);
   const leavePage = () => {

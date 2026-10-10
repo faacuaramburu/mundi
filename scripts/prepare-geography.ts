@@ -18,6 +18,7 @@ try {
   const response = await fetch(source, { signal: AbortSignal.timeout(60000) });
   if (!response.ok) throw new Error('Geography download failed');
   raw = Buffer.from(await response.arrayBuffer());
+  if (createHash('sha256').update(raw).digest('hex') !== checksum) throw new Error('Geography checksum mismatch');
   await mkdir(new URL('../work/geography/', import.meta.url), { recursive: true });
   await writeFile(cache, raw);
 }

@@ -8,16 +8,18 @@ import { URL } from 'node:url';
 /* eslint-disable security/detect-non-literal-fs-filename */
 const revision = 'ca96624a56bd078437bca8184e78163e5039ad19';
 const source = `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/${revision}/geojson/ne_50m_admin_0_countries.geojson`;
+const checksum = '3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb';
 const cache = new URL('../work/geography/countries-50m.geojson', import.meta.url);
 let bytes;
 try { bytes = await readFile(cache); } catch {
   const response = await fetch(source, { signal: AbortSignal.timeout(30000) });
   if (!response.ok) throw new Error('Geography source unavailable');
   bytes = Buffer.from(await response.arrayBuffer());
+  if (createHash('sha256').update(bytes).digest('hex') !== checksum) throw new Error('Geography checksum mismatch');
   await mkdir(new URL('../work/geography/', import.meta.url), { recursive: true });
   await writeFile(cache, bytes);
 }
-if (createHash('sha256').update(bytes).digest('hex') !== '3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb') throw new Error('Geography checksum mismatch');
+if (createHash('sha256').update(bytes).digest('hex') !== checksum) throw new Error('Geography checksum mismatch');
 const sourceData = JSON.parse(bytes.toString('utf8'));
 const atlas = JSON.parse(await readFile(new URL('../data/atlas.json', import.meta.url), 'utf8'));
 const mapping = new Map(sourceData.features.map(feature => {
