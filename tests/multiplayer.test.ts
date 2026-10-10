@@ -209,6 +209,18 @@ describe('private multiplayer transport', () => {
     const s = await setup(); for (let i = 0; i < 5; i++) expect((await s.post('/api/rooms', { mode: 'free', quota: 8 })).statusCode).toBe(201);
     const rejected = await s.post('/api/rooms', { mode: 'free', quota: 8 }); expect(rejected.statusCode).toBe(429); expect(rejected.json()).toEqual({ error: 'RATE_LIMIT' });
   });
+  it('does not let spoofed forwarding headers bypass creation limits', async () => {
+    const s = await setup();
+    for (let i = 0; i < 5; i++) {
+      const response = await s.app.inject({ method: 'POST', url: '/api/rooms', payload: { mode: 'free', quota: 8 },
+        headers: { origin, 'x-forwarded-for': `192.0.2.${i + 1}`, 'x-real-ip': `192.0.2.${i + 1}` } });
+      expect(response.statusCode).toBe(201);
+    }
+    const response = await s.app.inject({ method: 'POST', url: '/api/rooms', payload: { mode: 'free', quota: 8 },
+      headers: { origin, 'x-forwarded-for': '192.0.2.99', 'x-real-ip': '192.0.2.99' } });
+    expect(response.statusCode).toBe(429);
+    expect(response.json()).toEqual({ error: 'RATE_LIMIT' });
+  });
   it('expires a live room and closes both the invitation and socket', async () => {
     const s = await setup(); const first = await connect(`${s.base}/api/rooms/${s.roomId}/socket`, s.cookie);
     s.move(30 * 60_000);

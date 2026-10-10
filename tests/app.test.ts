@@ -19,6 +19,20 @@ afterEach(async () => {
 });
 
 describe('HTTP foundation', () => {
+  it('serves client files without exposing private files or directory traversal', async () => {
+    const app = createApp(loadConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://example.com' }));
+    apps.push(app);
+    const page = await app.inject({ method: 'GET', url: '/fonts/Barlow-Regular.ttf', headers: { host: 'example.com' } });
+    expect(page.statusCode).toBe(200);
+    expect(page.headers['cache-control']).toBe('no-store');
+    for (const url of ['/.env', '/.git/config', '/data/distances.json', '/src/server/config.ts', '/%2e%2e/%2e%2e/data/distances.json']) {
+      const response = await app.inject({ method: 'GET', url, headers: { host: 'example.com' } });
+      expect(response.statusCode).toBeGreaterThanOrEqual(400);
+      expect(response.statusCode).toBeLessThan(500);
+      expect(response.headers.location).toBeUndefined();
+    }
+  });
+
   it('redirects Render page links to the canonical domain while preserving the path and query', async () => {
     const app = makeApp(true);
     for (const method of ['GET', 'HEAD'] as const) {
