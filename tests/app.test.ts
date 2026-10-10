@@ -68,6 +68,9 @@ describe('HTTP foundation', () => {
     expect(response.headers['content-security-policy']).toContain("script-src 'self'");
     expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'");
     expect(response.headers['content-security-policy']).not.toContain('unsafe-inline');
+    expect(response.headers['content-security-policy']).toContain("script-src 'self' https://static.cloudflareinsights.com/beacon.min.js;");
+    expect(response.headers['content-security-policy']).toContain("connect-src 'self' wss://example.com https://cloudflareinsights.com/cdn-cgi/rum;");
+    expect(response.headers['content-security-policy']).not.toContain('https:;');
     expect(response.headers['strict-transport-security']).toContain('max-age=31536000');
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['referrer-policy']).toBe('no-referrer');
@@ -78,6 +81,7 @@ describe('HTTP foundation', () => {
     const response = await makeApp().inject({ method: 'GET', url: '/health' });
     expect(response.headers['strict-transport-security']).toBeUndefined();
     expect(response.headers['content-security-policy']).not.toContain('upgrade-insecure-requests');
+    expect(response.headers['content-security-policy']).not.toContain('cloudflareinsights.com');
   });
 
   it('rejects extra query fields without exposing validation details', async () => {

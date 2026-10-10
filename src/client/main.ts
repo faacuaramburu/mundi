@@ -9,6 +9,7 @@ import { initializeHistoryOrder } from './history-order.js';
 import { initializeProfile } from './profile.js';
 import { initializeFaq } from './faq.js';
 import { initializeMotion } from './motion.js';
+import { initializeAnalytics } from './analytics.js';
 
 initializeLanguage();
 initializeTheme();
@@ -16,6 +17,7 @@ initializeHistoryOrder();
 initializeProfile();
 initializeFaq();
 initializeMotion();
+initializeAnalytics();
 turnBrandOrbit();
 document.querySelector('.brand')?.addEventListener('pointerenter', turnBrandOrbit);
 document.querySelector('.brand')?.addEventListener('focus', turnBrandOrbit);

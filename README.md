@@ -20,6 +20,8 @@ Enter a country name and select a suggestion. Colors and approximate distances g
 
 Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Your progress and optional display name are saved in this browser. No account is required; clearing site data removes your progress, and it does not sync between devices.
 
+The live site uses Cloudflare Web Analytics for aggregate traffic and performance statistics.
+
 ## Built with
 
 - **Languages:** TypeScript, HTML and CSS.

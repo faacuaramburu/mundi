@@ -28,10 +28,10 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
       useDefaults: false,
       directives: {
         defaultSrc: ["'none'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", ...(production ? ['https://static.cloudflareinsights.com/beacon.min.js'] : [])],
         styleSrc: ["'self'"],
         imgSrc: ["'self'"],
-        connectSrc: ["'self'", config.origin.replace(/^http/, 'ws')],
+        connectSrc: ["'self'", config.origin.replace(/^http/, 'ws'), ...(production ? ['https://cloudflareinsights.com/cdn-cgi/rum'] : [])],
         fontSrc: ["'self'"],
         baseUri: ["'none'"],
         objectSrc: ["'none'"],
