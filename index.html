@@ -3,16 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Find the mystery country. Play solo or with friends and complete your world." />
+    <meta name="description" content="Play Mundi, a free Globle-style country guessing game. Explore the globe solo or play online multiplayer with 2 to 4 friends. No account needed." />
     <meta name="referrer" content="no-referrer" />
-    <title>Mundi</title>
+    <title>Mundi | Globle-style Online Multiplayer Game</title>
+    <link rel="canonical" href="https://mundi.top/" />
+    <meta property="og:site_name" content="Mundi" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mundi.top/" />
+    <meta property="og:title" content="Mundi | Globle-style Online Multiplayer Game" />
+    <meta property="og:description" content="Play Mundi, a free Globle-style country guessing game. Explore the globe solo or play online multiplayer with 2 to 4 friends. No account needed." />
+    <meta property="og:image" content="https://mundi.top/mundi-preview.jpg" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta property="og:image:alt" content="Mundi's globe and singleplayer and multiplayer game modes" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link id="mundi-favicon" rel="icon" type="image/svg+xml" href="/favicon-light.svg" />
     <link rel="stylesheet" href="/src/client/style.css" />
     <script src="/theme.js"></script>
     <script type="module" src="/src/client/main.ts"></script>
   </head>
   <body>
-    <div class="app-shell">
+    <div class="app-shell" itemscope itemtype="https://schema.org/WebSite">
+      <meta itemprop="name" content="Mundi" />
+      <link itemprop="url" href="https://mundi.top/" />
       <header class="topbar">
         <a class="brand" href="/" aria-label="Mundi home" data-i18n-aria="home">
           <span id="brand-mark" aria-hidden="true"><img class="brand-symbol" src="/mundi.svg" alt="" /></span>
@@ -31,6 +44,10 @@
       <section id="country-faq" class="country-faq" aria-labelledby="faq-title" hidden>
         <div class="faq-content">
           <h2 id="faq-title" data-i18n="faqTitle">Countries and distances</h2>
+          <details class="faq-question">
+            <summary data-i18n="faqMultiplayerQuestion">Is Mundi a multiplayer alternative to Globle?</summary>
+            <p data-i18n="faqMultiplayerAnswer">Mundi is an independent Globle-style geography game. Guess the mystery country using distance clues on a globe, play solo or create an online multiplayer room for 2 to 4 friends. Race to find the country or take turns with shared clues. No account is required. Mundi is not affiliated with Globle.</p>
+          </details>
           <details class="faq-question" open>
             <summary data-i18n="faqRosterQuestion">Which countries can be the answer?</summary>
             <p data-i18n="faqRosterAnswer">Mundi has a fixed list of 195 countries: the 193 UN member states, plus Palestine and the Holy See, shown as Vatican City. These are the same countries you can guess and collect in your index.</p>
@@ -74,7 +91,7 @@
         <section class="game-panel" aria-label="Country guesses" data-i18n-aria="playPanel">
           <section id="home-screen" class="home-screen" aria-labelledby="home-title" hidden>
             <h2 id="home-title" class="home-wordmark">mundi</h2>
-            <p class="home-intro" data-i18n="welcome">Choose how to play</p>
+            <p class="home-intro" data-i18n="homeDescription">Guess the country. Play solo or online with friends.</p>
             <div data-player-profile></div>
             <a id="home-resume" class="secondary-button resume-room" data-i18n="resumeRoom" hidden>Return to your game</a>
             <nav class="home-choices" aria-label="Game modes" data-i18n-aria="welcome">

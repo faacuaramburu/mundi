@@ -63,6 +63,21 @@ describe('HTTP foundation', () => {
     expect(response.headers['cache-control']).toBe('no-store');
   });
 
+  it('allows the home page to be indexed while excluding rooms and service endpoints', async () => {
+    const app = makeApp(true);
+    app.get('/', async () => 'Mundi');
+    const home = await app.inject({ method: 'GET', url: '/' });
+    expect(home.headers['x-robots-tag']).toBeUndefined();
+    for (const url of ['/?room=AbCdEfGhIjKlMnOpQrStUv_-', '/?play=multi', '/?view=index', '/health', '/api/rooms/resume']) {
+      const response = await app.inject({ method: 'GET', url });
+      expect(response.headers['x-robots-tag']).toBe('noindex, nofollow');
+    }
+    const health = await app.inject({ method: 'HEAD', url: '/health' });
+    expect(health.statusCode).toBe(200);
+    expect(health.body).toBe('');
+    expect(health.headers['x-robots-tag']).toBe('noindex, nofollow');
+  });
+
   it('sets strict production headers without inline scripts', async () => {
     const response = await makeApp(true).inject({ method: 'GET', url: '/health' });
     expect(response.headers['content-security-policy']).toContain("script-src 'self'");

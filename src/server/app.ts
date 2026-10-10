@@ -45,9 +45,12 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
     xFrameOptions: { action: 'deny' },
   });
 
-  app.addHook('onSend', async (_request, reply, payload) => {
+  app.addHook('onSend', async (request, reply, payload) => {
     reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     reply.header('Cache-Control', 'no-store');
+    if (request.url.startsWith('/api/') || request.url.split('?')[0] === '/health' || request.url.startsWith('/?')) {
+      reply.header('X-Robots-Tag', 'noindex, nofollow');
+    }
     return payload;
   });
 
