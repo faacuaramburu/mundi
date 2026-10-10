@@ -95,5 +95,14 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
     }
   });
 
+  app.addHook('onRequest', async (request, reply) => {
+    if (!production || request.headers.upgrade || !['GET', 'HEAD'].includes(request.method)) return;
+    if (request.url.split('?')[0] === '/health' || request.url.startsWith('/api/')) return;
+    const hostname = request.hostname.toLowerCase();
+    if (hostname.endsWith('.onrender.com') && hostname !== new URL(config.origin).hostname) {
+      await reply.redirect(`${config.origin}${request.url}`, 308);
+    }
+  });
+
   return app;
 }

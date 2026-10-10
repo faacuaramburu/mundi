@@ -19,6 +19,29 @@ afterEach(async () => {
 });
 
 describe('HTTP foundation', () => {
+  it('redirects Render page links to the canonical domain while preserving the path and query', async () => {
+    const app = makeApp(true);
+    for (const method of ['GET', 'HEAD'] as const) {
+      const response = await app.inject({ method, url: '/?play=multi&room=abc', headers: { host: 'mundi-avdd.onrender.com' } });
+      expect(response.statusCode).toBe(308);
+      expect(response.headers.location).toBe('https://example.com/?play=multi&room=abc');
+    }
+    const canonical = await app.inject({ method: 'GET', url: '/', headers: { host: 'example.com', 'x-forwarded-host': 'mundi-avdd.onrender.com' } });
+    expect(canonical.headers.location).toBeUndefined();
+    const health = await app.inject({ method: 'GET', url: '/health', headers: { host: 'mundi-avdd.onrender.com' } });
+    expect(health.statusCode).toBe(200);
+    const mutation = await app.inject({ method: 'POST', url: '/api/rooms', headers: { host: 'mundi-avdd.onrender.com', origin: 'https://mundi-avdd.onrender.com' }, payload: {} });
+    expect(mutation.headers.location).toBeUndefined();
+    expect(mutation.statusCode).toBe(403);
+  });
+
+  it('keeps a Render hostname usable when it is still the canonical origin', async () => {
+    const app = createApp(loadConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://mundi-avdd.onrender.com' }), false);
+    apps.push(app);
+    const response = await app.inject({ method: 'GET', url: '/', headers: { host: 'mundi-avdd.onrender.com' } });
+    expect(response.headers.location).toBeUndefined();
+  });
+
   it('returns only minimal health information', async () => {
     const response = await makeApp().inject({ method: 'GET', url: '/health' });
     expect(response.statusCode).toBe(200);
