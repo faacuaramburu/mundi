@@ -1,0 +1,47 @@
+{
+  "name": "mundi",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Solo geography discoveries and private races or shared turns for 2–4 friends",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.18.1 <25"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "dev:server": "tsx watch --env-file-if-exists=.env src/server/index.ts",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "prepare:geography": "tsx scripts/prepare-geography.ts",
+    "prepare:brand": "node scripts/prepare-brand-assets.mjs",
+    "check:client-build": "node scripts/check-client-build.mjs",
+    "build": "npm run typecheck && vite build && tsc -p tsconfig.server.json",
+    "start": "node --env-file-if-exists=.env dist/server/index.js"
+  },
+  "dependencies": {
+    "@fastify/helmet": "13.1.1",
+    "@fastify/static": "10.1.5",
+    "@fastify/websocket": "11.3.3",
+    "d3-geo": "3.1.1",
+    "fastify": "5.12.5",
+    "three": "0.186.1",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/d3-geo": "3.1.0",
+    "@types/node": "24.19.1",
+    "@types/three": "0.186.0",
+    "@types/ws": "8.18.2",
+    "eslint": "10.12.0",
+    "eslint-plugin-security": "4.2.0",
+    "flag-icons": "7.5.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  }
+}

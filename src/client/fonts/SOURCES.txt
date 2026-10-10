@@ -1,0 +1,12 @@
+Font sources
+
+Fonts downloaded from the official Google Fonts repository on 2026-10-08 and
+served locally. Converted to WOFF2 with FontTools to reduce loading time.
+No font service is contacted by the application.
+
+- Barlow-Regular.woff2: Barlow (https://github.com/google/fonts/tree/main/ofl/barlow), weight 400.
+- Barlow-SemiBold.woff2: the same family, weight 600.
+- SmoochSans.woff2: Smooch Sans (https://github.com/google/fonts/tree/main/ofl/smoochsans), instantiated at weight 700 from SmoochSans[wght].ttf for the wordmark.
+
+The family-specific SIL Open Font License notices are retained alongside the files
+as Barlow-OFL.txt and SmoochSans-OFL.txt.
