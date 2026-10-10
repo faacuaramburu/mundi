@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: virginia
-    branch: master
+    branch: main
     numInstances: 1
     autoDeployTrigger: commit
     buildCommand: npm ci --include=dev && npm run build && npm run check:client-build

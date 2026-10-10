@@ -1,6 +1,6 @@
 # Mundi
 
-**An online multiplayer geography guessing game for 2–4 friends.** Find the mystery country on an interactive globe: race against each other or take turns using shared clues. You can also play solo and collect your discoveries.
+**An online multiplayer geography guessing game for 2 to 4 friends.** Find the mystery country on an interactive globe: race against each other or take turns using shared clues. You can also play solo and collect your discoveries.
 
 **[Play at mundi.top](https://mundi.top)** · English and Spanish · Desktop and mobile
 
@@ -8,7 +8,7 @@
 
 ## Play with friends
 
-Create a private room, share the invitation link and get ready. Play together online from different devices—no need to be on the same network.
+Create a private room, share the invitation link and get ready. Play together online from different devices. You do not need to be on the same network.
 
 - **Race:** guess independently and compete to find the country first.
 - **Take turns:** alternate guesses, share distance clues and try to land the winning answer.
@@ -19,6 +19,14 @@ Enter a country name and select a suggestion. Colors and approximate distances g
 ## Your country index
 
 Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Your progress and optional display name are saved in this browser. No account is required; clearing site data removes your progress, and it does not sync between devices.
+
+## Built with
+
+- **Languages:** TypeScript, HTML and CSS.
+- **Frontend:** Vite and Three.js for the interactive globe.
+- **Backend:** Node.js and Fastify, with WebSockets for real-time multiplayer.
+- **Storage:** browser local storage for progress and server memory for rooms. No database required.
+- **Hosting:** Render.
 
 ## Run locally
 
