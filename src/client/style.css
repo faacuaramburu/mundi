@@ -361,14 +361,37 @@ select:disabled { opacity: .5; }
 .theme-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px; padding: 8px; color: var(--ink); border: 0; background: transparent; font-size: var(--meta-size); white-space: nowrap; }
 .theme-button:hover { background: var(--option-active); border-radius: 6px; }
 .theme-button svg { width: 20px; height: 20px; flex-shrink: 0; }
-/* Only manual theme changes animate, so loading a saved theme never fades in. */
-:root[data-theme-transition], :root[data-theme-transition] * {
-  transition: background-color 300ms ease-out, color 300ms ease-out, border-color 300ms ease-out, transform 120ms ease-out;
+/* Only manual theme changes animate, so loading a saved theme never fades in.
+   Animate the theme tokens once on the root instead of every element's color.
+   Per-element color transitions chain through inheritance, so nested text lags
+   behind its parent and then snaps when the transition attribute is removed. */
+@property --paper { syntax: '<color>'; inherits: true; initial-value: #fff; }
+@property --field { syntax: '<color>'; inherits: true; initial-value: #fff; }
+@property --field-border { syntax: '<color>'; inherits: true; initial-value: #bfc3cc; }
+@property --placeholder { syntax: '<color>'; inherits: true; initial-value: #6b6e7a; }
+@property --option-active { syntax: '<color>'; inherits: true; initial-value: #edf0f2; }
+@property --secondary-hover { syntax: '<color>'; inherits: true; initial-value: #f0f1f3; }
+@property --primary { syntax: '<color>'; inherits: true; initial-value: #25272b; }
+@property --primary-ink { syntax: '<color>'; inherits: true; initial-value: #fff; }
+@property --primary-hover { syntax: '<color>'; inherits: true; initial-value: #454950; }
+@property --focus { syntax: '<color>'; inherits: true; initial-value: #3679a2; }
+@property --success-text { syntax: '<color>'; inherits: true; initial-value: #28633d; }
+@property --error-text { syntax: '<color>'; inherits: true; initial-value: #a33b32; }
+@property --ink { syntax: '<color>'; inherits: true; initial-value: #25272b; }
+@property --muted { syntax: '<color>'; inherits: true; initial-value: #626570; }
+@property --line { syntax: '<color>'; inherits: true; initial-value: #d4d6dc; }
+@property --stage { syntax: '<color>'; inherits: true; initial-value: #fff; }
+@property --stage-ink { syntax: '<color>'; inherits: true; initial-value: #25272b; }
+@property --stage-muted { syntax: '<color>'; inherits: true; initial-value: #626570; }
+:root[data-theme-transition] {
+  transition-property: --paper, --field, --field-border, --placeholder, --option-active, --secondary-hover, --primary, --primary-ink, --primary-hover, --focus, --success-text, --error-text, --ink, --muted, --line, --stage, --stage-ink, --stage-muted;
+  transition-duration: 300ms;
+  transition-timing-function: ease-out;
 }
-:root[data-theme-transition][data-motion='reduced'], :root[data-theme-transition][data-motion='reduced'] * {
-  /* Reduce spatial motion while keeping the page's color change in sync. */
-  transition: background-color 100ms ease-out, color 100ms ease-out, border-color 100ms ease-out;
-}
+:root[data-theme-transition] img.brand-symbol { transition: filter 300ms ease-out; }
+/* Reduced motion keeps a short fade so the page still changes in sync. */
+:root[data-theme-transition][data-motion='reduced'],
+:root[data-theme-transition][data-motion='reduced'] img.brand-symbol { transition-duration: 100ms; }
 .theme-sun { display: none; }
 :root[data-theme='dark'] .theme-moon { display: none; }
 :root[data-theme='dark'] .theme-sun { display: block; }
