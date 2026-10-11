@@ -225,6 +225,11 @@ export class Globe {
     const canvas = this.flat ? this.map : this.renderer?.domElement;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
+    if (this.flat && (event.clientX < rect.left || event.clientX > rect.right
+      || event.clientY < rect.top || event.clientY > rect.bottom)) {
+      this.onPointerLeave();
+      return;
+    }
     this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
       1 - (event.clientY - rect.top) / rect.height * 2);
     this.pointerInside = true;
@@ -287,14 +292,20 @@ export class Globe {
   };
 
   private layoutFlatMap(): void {
-    const width = Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight - 120) * this.atlas.width / this.atlas.height);
+    const width = Math.max(1, Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight - 120) * this.atlas.width / this.atlas.height));
     const height = width * this.atlas.height / this.atlas.width;
     this.flatPan.x = Math.max(-width * (this.flatZoom - 1) / 2, Math.min(width * (this.flatZoom - 1) / 2, this.flatPan.x));
     this.flatPan.y = Math.max(-height * (this.flatZoom - 1) / 2, Math.min(height * (this.flatZoom - 1) / 2, this.flatPan.y));
     this.map.style.width = `${width}px`;
     this.map.style.height = `${height}px`;
-    this.map.style.transform = `translate(-50%, -50%) translate3d(${this.flatPan.x}px, ${this.flatPan.y}px, 0) scale(${this.flatZoom})`;
-    this.map.setAttribute('stroke-width', String(.5 / this.flatZoom));
+    this.map.style.transform = 'translate(-50%, -50%)';
+    // Zoom the visible geography inside a fixed SVG frame, including its ocean.
+    const viewWidth = this.atlas.width / this.flatZoom;
+    const viewHeight = this.atlas.height / this.flatZoom;
+    const left = (this.atlas.width - viewWidth) / 2 - this.flatPan.x / width * viewWidth;
+    const top = (this.atlas.height - viewHeight) / 2 - this.flatPan.y / height * viewHeight;
+    this.map.setAttribute('viewBox', `${left} ${top} ${viewWidth} ${viewHeight}`);
+    this.hoverDirty = this.pointerInside;
     this.labelWidth = 0;
   }
 
@@ -311,14 +322,18 @@ export class Globe {
     if (!this.pointerInside) return;
     if (this.flatPointers.size) return;
     if (this.flat) {
-      const countryUnderPointer = this.countryAt(this.pointer.x * 180, this.pointer.y * 90);
+      const view = this.map.viewBox.baseVal;
+      const mapX = view.x + (this.pointer.x + 1) / 2 * view.width;
+      const mapY = view.y + (1 - this.pointer.y) / 2 * view.height;
+      const countryUnderPointer = this.countryAt(mapX / this.atlas.width * 360 - 180,
+        90 - mapY / this.atlas.height * 180);
       if (countryUnderPointer && this.collectedIds.has(countryUnderPointer.id)) this.hoveredCountry = countryUnderPointer;
       if (this.hoveredCountry) return;
       const rect = this.map.getBoundingClientRect();
       for (const country of this.atlas.countries) {
         if (!this.collectedIds.has(country.id) || !this.mapMarkers.has(country.id)) continue;
-        const x = (country.focus[0] + 180) / 180 - 1;
-        const y = country.focus[1] / 90;
+        const x = ((country.focus[0] + 180) / 360 * this.atlas.width - view.x) / view.width * 2 - 1;
+        const y = 1 - ((90 - country.focus[1]) / 180 * this.atlas.height - view.y) / view.height * 2;
         if (Math.hypot((x - this.pointer.x) * rect.width / 2,
           (y - this.pointer.y) * rect.height / 2) <= 8) {
           this.hoveredCountry = country;
@@ -542,16 +557,17 @@ export class Globe {
     }
     const halfWidth = this.labelWidth / 2 + 8;
     const mapRect = this.flat ? this.map.getBoundingClientRect() : this.host.getBoundingClientRect();
+    const view = this.map.viewBox.baseVal;
     const hostRect = this.host.getBoundingClientRect();
     const x = this.hoveredCountry
       ? mapRect.left - hostRect.left + (this.pointer.x + 1) / 2 * mapRect.width
       : this.flat
-      ? mapRect.left - hostRect.left + (country.focus[0] + 180) / 360 * mapRect.width
+      ? mapRect.left - hostRect.left + ((country.focus[0] + 180) / 360 * this.atlas.width - view.x) / view.width * mapRect.width
       : (projected.x + 1) * this.host.clientWidth / 2;
     const y = this.hoveredCountry
       ? mapRect.top - hostRect.top + (1 - this.pointer.y) / 2 * mapRect.height
       : this.flat
-      ? mapRect.top - hostRect.top + (90 - country.focus[1]) / 180 * mapRect.height
+      ? mapRect.top - hostRect.top + ((90 - country.focus[1]) / 180 * this.atlas.height - view.y) / view.height * mapRect.height
       : (1 - projected.y) * this.host.clientHeight / 2;
     const left = Math.max(halfWidth, Math.min(this.host.clientWidth - halfWidth, x));
     const top = Math.max(this.labelHeight + 8, y - 12);
