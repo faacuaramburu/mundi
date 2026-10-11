@@ -146,6 +146,7 @@ export class Rooms {
     const seen = room.rules.play === 'turns' ? room.players.flatMap(other => other?.guesses ?? []) : player.guesses;
     if (seen.some(guess => guess.countryId === action.countryId)) throw new RoomError('DUPLICATE');
     if (room.rules.mode === 'limited' && player.guesses.length >= room.rules.quota) throw new RoomError('QUOTA');
+    room.expiresAt = now + 30 * 60_000;
     player.guesses.push({ ...this.geography.hint(action.countryId, room.target), order: ++room.order });
     if (room.rules.mode === 'limited' && room.rules.play !== 'turns') room.idleEndsAt = now + 60_000;
     if (action.countryId === room.target) this.finish(room, 'correct', seat);
@@ -153,6 +154,7 @@ export class Rooms {
     else if (room.rules.play === 'turns') this.nextTurn(room, now);
   }
   private begin(room: Room): void {
+    room.expiresAt = this.now() + 30 * 60_000;
     room.target = this.choose(this.geography.ids.filter(id => id !== room.previousTarget));
     const solo = room.players.length === 1;
     room.phase = solo ? 'playing' : 'countdown'; room.startsAt = this.now() + (solo ? 0 : 3000);
@@ -182,7 +184,7 @@ export class Rooms {
     }
     room.phase = 'finished'; room.previousTarget = room.target; room.result = { winner, reason };
     room.turn = null; room.turnEndsAt = null;
-    room.expiresAt = Math.min(room.expiresAt, this.now() + 10 * 60_000);
+    room.expiresAt = this.now() + 10 * 60_000;
   }
   private advance(room: Room): boolean {
     const now = this.now();

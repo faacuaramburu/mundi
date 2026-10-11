@@ -107,6 +107,49 @@ describe('authoritative rooms', () => {
     const s = setup(); s.move(30 * 60_000); expect(s.rooms.tick()).toContain(s.id); code(() => s.snapshot(), 'ROOM_GONE');
     const rooms = new Rooms(geo, Date.now, ids => ids[0]!, 1); rooms.create('a', { mode: 'free', quota: 8 }); code(() => rooms.create('b', { mode: 'free', quota: 8 }), 'CAPACITY');
   });
+  it('keeps a rematch alive past the previous result retention window', () => {
+    const s = setup({ mode: 'free', quota: 8 }); s.start(); s.guess(0, 'ARG');
+    const oldExpiry = s.snapshot().expiresAt;
+    s.move(9 * 60_000);
+    for (const seat of [0, 1] as const) s.rooms.action(s.id, seat, { type: 'rematch', value: true, round: 1 });
+    s.move(3000); s.rooms.tick(); s.move(61_000); s.rooms.tick();
+    const view = s.snapshot();
+    expect(view.serverNow).toBeGreaterThan(oldExpiry);
+    expect(view).toMatchObject({ phase: 'playing', round: 2, result: null });
+    s.guess(1, 'URY', 2); expect(s.snapshot().result?.winner).toBe(1);
+  });
+  it('keeps consecutive rounds alive beyond the original thirty-minute lifetime', () => {
+    const s = setup({ mode: 'free', quota: 8 }); s.start();
+    for (let round = 1; round <= 16; round++) {
+      s.move(120_000); s.rooms.tick();
+      s.guess(0, round % 2 ? 'ARG' : 'URY', round);
+      expect(s.snapshot().result?.reason).toBe('correct');
+      for (const seat of [0, 1] as const) s.rooms.action(s.id, seat, { type: 'rematch', value: true, round });
+      s.move(3000); s.rooms.tick();
+    }
+    expect(s.snapshot()).toMatchObject({ phase: 'playing', round: 17 });
+  });
+  it('does not expire a round started near the lobby expiry', () => {
+    const s = setup({ mode: 'free', quota: 8 }); s.move(29 * 60_000); s.start();
+    s.move(90_000); s.rooms.tick();
+    expect(s.snapshot().phase).toBe('playing'); s.guess(0, 'ARG');
+    s.move(10 * 60_000 - 1); s.rooms.tick(); expect(s.snapshot().phase).toBe('finished');
+    s.move(1); expect(s.rooms.tick()).toContain(s.id); code(() => s.snapshot(), 'ROOM_GONE');
+  });
+  it('renews unlimited solo play only for accepted guesses', () => {
+    let time = 1_000_000;
+    const rooms = new Rooms(geo, () => time, choices => choices[0]!);
+    const id = rooms.create('solo', { players: 1, mode: 'free', quota: 8 });
+    rooms.connect(id, 0); rooms.action(id, 0, { type: 'ready', value: true, round: 1 });
+    time += 29 * 60_000;
+    rooms.action(id, 0, { type: 'guess', countryId: 'BRA', round: 1 });
+    time += 2 * 60_000; rooms.tick(); expect(rooms.snapshot(id, 0).phase).toBe('playing');
+    const expiresAt = rooms.snapshot(id, 0).expiresAt;
+    code(() => rooms.action(id, 0, { type: 'guess', countryId: 'BRA', round: 1 }), 'DUPLICATE');
+    code(() => rooms.action(id, 0, { type: 'guess', countryId: 'XXX', round: 1 }), 'INVALID_REQUEST');
+    expect(rooms.snapshot(id, 0).expiresAt).toBe(expiresAt);
+    time = expiresAt; rooms.tick(); code(() => rooms.snapshot(id, 0), 'ROOM_GONE');
+  });
   it('validates actual geography without exposing the matrix to the client', () => {
     const actual = loadGeography(); expect(actual.ids).toHaveLength(195); expect(actual.hint('URY', 'ARG')).toMatchObject({ distance: 0, border: true, correct: false });
     expect(actual.hint('BRA', 'FRA').border).toBe(false);
