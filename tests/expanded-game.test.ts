@@ -31,6 +31,32 @@ function reject(action: () => void, expected: string) {
   expect((rejected as RoomError).code).toBe(expected);
 }
 describe('expanded play', () => {
+  it('identifies each shared guess by its authenticated seat after reconnecting and finishing', () => {
+    const s = game({ players: 4, play: 'turns', mode: 'free', quota: 8 });
+    ['Alex', 'Bea', 'Cam', 'Dani'].forEach((name, seat) => s.rooms.join(s.id, `p${seat}`, name));
+    s.start();
+    s.guess(0, 'BRA'); s.guess(1, 'FRA'); s.guess(2, 'URY'); s.guess(3, 'CHL');
+    s.rooms.disconnect(s.id, 2); s.rooms.connect(s.id, 2);
+    for (const seat of [0, 1, 2, 3] as const) {
+      const view = s.snapshot(seat);
+      expect(view.guesses.map(guess => guess.playerSeat)).toEqual([0, 1, 2, 3]);
+      expect(view.guesses.map(guess => view.players[guess.playerSeat]?.name)).toEqual(['Alex', 'Bea', 'Cam', 'Dani']);
+      expect(JSON.stringify(view)).not.toMatch(/"ARG"|"credential"|"order"|"p[0-3]"/);
+    }
+    s.guess(0, 'ARG');
+    expect(s.snapshot(3).result?.histories.map(guesses => guesses.map(guess => guess.playerSeat)))
+      .toEqual([[0, 0], [1], [2], [3]]);
+  });
+  it('keeps race guesses private until the result while retaining their authors', () => {
+    const s = game({ players: 4, play: 'race', mode: 'free', quota: 8 }); s.start();
+    s.guess(0, 'BRA'); s.guess(1, 'FRA'); s.guess(2, 'URY');
+    expect(s.snapshot(1).guesses.map(guess => guess.playerSeat)).toEqual([1]);
+    expect(s.snapshot(3).guesses).toEqual([]);
+    expect(JSON.stringify(s.snapshot(3))).not.toMatch(/"(?:BRA|FRA|URY|ARG)"/);
+    s.guess(3, 'ARG');
+    expect(s.snapshot().result?.histories.map(guesses => guesses.map(guess => guess.playerSeat)))
+      .toEqual([[0], [1], [2], [3]]);
+  });
   it('giving up reveals the solo target without awarding a win or a correct guess, and starts a fresh round', () => {
     const s = game({ players: 1, mode: 'free', quota: 8 });
     reject(() => s.rooms.action(s.id, 0, { type: 'giveup', round: 1 }), 'NOT_PLAYING');

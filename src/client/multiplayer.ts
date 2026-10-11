@@ -1,6 +1,6 @@
 import type { Atlas } from '../shared/countries.js';
 import { formatDistance, getHint } from '../shared/countries.js';
-import type { Action, ErrorCode, Guess, Rules, ServerMessage, Snapshot } from '../shared/multiplayer.js';
+import type { Action, ErrorCode, PlayerGuess, Rules, ServerMessage, Snapshot } from '../shared/multiplayer.js';
 import type { Globe } from './globe.js';
 import { bindCountryInput } from './country-input.js';
 import { countryName, getLanguage, guessCount, onLanguageChange, setTranslatedText, t, winnerMessage } from './i18n.js';
@@ -67,7 +67,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     input.disabled = !canGuess; guessButton.disabled = !canGuess;
     showGiveUp(snapshot.rules.players === 1 && snapshot.rules.mode === 'free' && snapshot.phase === 'playing', canGuess);
   }
-  function renderHistory(node: HTMLElement, guesses: Guess[]): void {
+  function renderHistory(node: HTMLElement, guesses: PlayerGuess[]): void {
     node.replaceChildren();
     guesses.forEach((guess, index) => {
       const country = countries.get(guess.countryId); if (!country) return;
@@ -79,6 +79,11 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       swatch.style.backgroundColor = getHint(guess.distance, guess.correct, guess.border).color;
       const name = document.createElement('span'); name.className = 'guess-name'; name.textContent = countryName(country);
       name.prepend(countryFlag(country));
+      if (snapshot && (snapshot.rules.players ?? 2) > 1) {
+        const author = document.createElement('span'); author.className = 'guess-player';
+        author.textContent = `${t('guessedBy')} ${playerLabel(snapshot, guess.playerSeat)}`;
+        name.append(author);
+      }
       const hint = document.createElement('span'); hint.className = 'guess-hint';
       hint.textContent = formatDistance(guess.distance, getLanguage()) + (guess.correct ? ` · ${t('correct')}` : guess.border ? ` · ${t('border')}` : '');
       entry.append(number, swatch, name, hint); node.prepend(entry);

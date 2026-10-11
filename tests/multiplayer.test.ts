@@ -199,14 +199,19 @@ describe('private multiplayer transport', () => {
     await peers[0]!.until(m => m.type === 'snapshot' && m.players.every(player => player?.connected));
     for (const peer of peers) peer.socket.send(JSON.stringify({ type: 'ready', value: true, round: 1 }));
     await peers[0]!.until(m => m.type === 'snapshot' && m.phase === 'countdown');
-    s.move(3000); peers[0]!.socket.send(JSON.stringify({ type: 'guess', countryId: 'BRA', round: 1 }));
+    s.move(3000);
+    peers[0]!.socket.send(JSON.stringify({ type: 'guess', countryId: 'BRA', round: 1, playerSeat: 3 }));
+    await peers[0]!.until(m => m.type === 'error' && m.error === 'INVALID_REQUEST');
+    expect(s.rooms.snapshot(id, 0).guesses).toEqual([]);
+    peers[0]!.socket.send(JSON.stringify({ type: 'guess', countryId: 'BRA', round: 1 }));
     const shared = await peers[3]!.until(m => m.type === 'snapshot' && m.turn === 1) as Snapshot;
-    expect(shared.guesses.at(0)?.countryId).toBe('BRA'); expect(shared.result).toBeNull();
+    expect(shared.guesses.at(0)).toMatchObject({ countryId: 'BRA', playerSeat: 0 }); expect(shared.result).toBeNull();
     peers[2]!.socket.send(JSON.stringify({ type: 'guess', countryId: 'ARG', round: 1 }));
     await peers[2]!.until(m => m.type === 'error' && m.error === 'NOT_YOUR_TURN');
     peers[1]!.socket.send(JSON.stringify({ type: 'guess', countryId: 'ARG', round: 1 }));
     const result = await peers[3]!.until(m => m.type === 'snapshot' && m.phase === 'finished') as Snapshot;
     expect(result.result).toMatchObject({ winner: 1, targetId: 'ARG' }); expect(result.result?.histories).toHaveLength(4);
+    expect(result.guesses.map(guess => guess.playerSeat)).toEqual([0, 1]);
   });
   it('keeps a seat reserved after disconnect and rejects simultaneous duplicate connections', async () => {
     const s = await setup(); const url = `${s.base}/api/rooms/${s.roomId}/socket`;

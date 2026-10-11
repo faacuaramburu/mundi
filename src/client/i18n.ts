@@ -38,6 +38,7 @@ const messages = {
   globeView: ['Globe', 'Globo'],
   flatView: ['Flat map', 'Mapa plano'],
   proximity: ['Proximity', 'Cercanía'],
+  guessedBy: ['Guessed by', 'Elegido por'],
   sortDistance: ['Sort closest guesses first', 'Ordenar intentos del más cercano al más lejano'],
   sortRecent: ['Restore most recent guesses first', 'Volver a mostrar primero los intentos más recientes'],
   welcome: ['Choose how to play', 'Elegí cómo jugar'],
