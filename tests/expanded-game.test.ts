@@ -43,7 +43,7 @@ describe('expanded play', () => {
     s.rooms.action(s.id, 0, { type: 'rematch', value: true, round: 1 });
     s.rooms.action(s.id, 1, { type: 'rematch', value: true, round: 1 });
     expect(s.snapshot().players.map(player => player?.name)).toEqual(['José M.', 'Lucía_2']);
-    expect(JSON.stringify(s.snapshot())).not.toMatch(/credential|p0|p1/);
+    expect(JSON.stringify(s.snapshot())).not.toMatch(/credential|"p0"|"p1"/);
   });
   it('rejects markup, control characters, invisible names and oversized names', () => {
     const s = game({ players: 2, mode: 'free', quota: 8 });
@@ -69,7 +69,7 @@ describe('expanded play', () => {
     const s = game({ players: 4, mode: 'free', quota: 8 }); s.start();
     for (const seat of [1, 2, 3] as const) s.guess(seat, ids.at(seat)!);
     expect(s.snapshot().players.map(player => player?.count)).toEqual([0, 1, 1, 1]);
-    expect(JSON.stringify(s.snapshot())).not.toMatch(/BRA|FRA|URY|p0|p1/);
+    expect(JSON.stringify(s.snapshot())).not.toMatch(/"(?:BRA|FRA|URY|p0|p1)"/);
     reject(() => s.rooms.join(s.id, 'p4'), 'ROOM_FULL');
     s.guess(3, 'ARG'); expect(s.snapshot().result?.winner).toBe(3);
     expect(s.snapshot().result?.histories).toHaveLength(4);

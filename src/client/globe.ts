@@ -1,13 +1,24 @@
 import { countryName, setTranslatedAria, setTranslatedText } from './i18n.js';
 import {
-  AmbientLight, CanvasTexture, Color, DirectionalLight, InstancedMesh, Matrix4, Mesh,
+  AmbientLight, Color, DirectionalLight, InstancedMesh, Matrix4, Mesh,
   MeshBasicMaterial, MeshLambertMaterial, PerspectiveCamera, Raycaster, Scene,
-  Sphere, SphereGeometry, SRGBColorSpace, Vector2, Vector3, WebGLRenderer,
+  Sphere, SphereGeometry, Vector2, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import type { Atlas, Country } from '../shared/countries.js';
 import { GlobeFlight } from './globe-flight.js';
 import { prefersReducedMotion } from './motion.js';
+import { atlasBorders, GlobeSurface } from './globe-surface.js';
+
+const tinyCountries = new Set([
+  'VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT', 'SGP', 'BHR',
+  'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'BHS',
+  'CPV', 'COM', 'MUS', 'SYC', 'STP', 'MDV', 'NRU', 'TUV',
+  'KIR', 'MHL', 'FSM', 'PLW', 'WSM', 'TON',
+]);
 
 function position([longitude, latitude]: [number, number]): Vector3 {
   const lon = longitude * Math.PI / 180;
@@ -17,16 +28,17 @@ function position([longitude, latitude]: [number, number]): Vector3 {
 
 export class Globe {
   private atlas: Atlas;
-  private map = document.createElement('canvas');
+  private map = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  private mapCountries = new Map<string, SVGPathElement>();
+  private mapMarkers = new Map<string, SVGCircleElement>();
   private context: CanvasRenderingContext2D;
   private colors = new Map<string, string>();
   private paths = new Map<string, Path2D>();
-  private backgroundPaths: Path2D[];
   private renderer: WebGLRenderer | null = null;
   private scene = new Scene();
   private camera = new PerspectiveCamera(38, 1, 0.1, 20);
   private controls: OrbitControls | null = null;
-  private texture: CanvasTexture;
+  private land: GlobeSurface | null = null;
   private markers = new Map<string, { position: Vector3; index: number }>();
   private markerLayer: InstancedMesh<SphereGeometry, MeshBasicMaterial> | null = null;
   private resizeObserver: ResizeObserver;
@@ -61,29 +73,40 @@ export class Globe {
   constructor(host: HTMLElement, atlas: Atlas) {
     this.host = host;
     this.atlas = atlas;
-    this.map.width = atlas.width;
-    this.map.height = atlas.height;
-    const context = this.map.getContext('2d');
+    this.map.setAttribute('viewBox', `0 0 ${atlas.width} ${atlas.height}`);
+    this.map.setAttribute('role', 'img');
+    this.map.setAttribute('class', 'flat-map');
+    this.map.setAttribute('tabindex', '0');
+    this.map.setAttribute('stroke-width', '.5');
+    this.map.style.background = '#174f7b';
+    for (const item of [...atlas.context, ...atlas.countries]) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', item.path);
+      path.setAttribute('fill', 'id' in item ? '#667273' : '#515b65');
+      path.setAttribute('stroke', '#b2bac2');
+      path.setAttribute('vector-effect', 'non-scaling-stroke');
+      this.map.append(path);
+      if ('id' in item && typeof item.id === 'string') this.mapCountries.set(item.id, path);
+    }
+    const context = document.createElement('canvas').getContext('2d');
     if (!context) throw new Error('Canvas unavailable');
     this.context = context;
     for (const country of atlas.countries) this.paths.set(country.id, new Path2D(country.path));
-    this.backgroundPaths = atlas.context.map((item) => new Path2D(item.path));
     this.drawMap();
-    this.texture = new CanvasTexture(this.map);
-    this.texture.colorSpace = SRGBColorSpace;
-
     try {
-      this.renderer = new WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+      this.renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     } catch {
+      this.flat = true;
       setTranslatedAria(this.map, 'map');
-      this.host.replaceChildren(this.map);
+      this.flatViewport.append(this.map);
+      this.host.replaceChildren(this.flatViewport);
       const help = document.querySelector('#globe-help');
       if (help) setTranslatedText(help, 'fallback');
     }
 
     if (this.renderer) {
       const renderer = this.renderer;
-      renderer.setPixelRatio(1);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setClearColor(0x000000, 0);
       renderer.domElement.className = 'globe-canvas';
       setTranslatedAria(renderer.domElement, 'globeControls');
@@ -92,6 +115,7 @@ export class Globe {
       renderer.domElement.addEventListener('pointerdown', this.centerRotation);
       renderer.domElement.addEventListener('pointermove', this.onPointerMove);
       renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
+      renderer.domElement.addEventListener('keydown', this.onKeyDown);
       this.host.replaceChildren(renderer.domElement);
       this.camera.position.copy(this.defaultView);
       this.controls = new OrbitControls(this.camera, renderer.domElement);
@@ -104,20 +128,21 @@ export class Globe {
       this.controls.addEventListener('start', this.stopFocus);
       this.controls.addEventListener('change', this.onCameraChange);
       this.scene.add(new Mesh(
-        new SphereGeometry(1, 80, 64),
-        new MeshLambertMaterial({ map: this.texture }),
+        new SphereGeometry(1, 128, 96),
+        new MeshLambertMaterial({ color: '#174f7b' }),
       ));
+      this.land = new GlobeSurface(atlas);
+      this.scene.add(new Mesh(this.land.geometry, new MeshLambertMaterial({ vertexColors: true })));
+      const borders = new LineSegmentsGeometry();
+      borders.setPositions(atlasBorders(atlas));
+      this.scene.add(new LineSegments2(borders, new LineMaterial({
+        color: '#b2bac2', linewidth: .65 * renderer.getPixelRatio(), alphaToCoverage: true,
+      })));
       this.scene.add(new AmbientLight(0xffffff, 2.4));
       const sunlight = new DirectionalLight(0xfffae9, 2.2);
       sunlight.position.set(-2, 4, 4);
       this.scene.add(sunlight);
-      const tiny = new Set([
-        'VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT', 'SGP', 'BHR',
-        'ATG', 'BRB', 'DMA', 'GRD', 'KNA', 'LCA', 'VCT', 'BHS',
-        'CPV', 'COM', 'MUS', 'SYC', 'STP', 'MDV', 'NRU', 'TUV',
-        'KIR', 'MHL', 'FSM', 'PLW', 'WSM', 'TON',
-      ]);
-      const smallCountries = atlas.countries.filter(country => tiny.has(country.id));
+      const smallCountries = atlas.countries.filter(country => tinyCountries.has(country.id));
       this.markerLayer = new InstancedMesh(new SphereGeometry(.004, 10, 8), new MeshBasicMaterial(), smallCountries.length);
       for (const [index, country] of smallCountries.entries()) {
         const anchor = position(country.focus).multiplyScalar(1.004);
@@ -127,7 +152,19 @@ export class Globe {
       }
       this.scene.add(this.markerLayer);
       this.drawMap();
-      this.texture.needsUpdate = true;
+    }
+
+    for (const country of atlas.countries) {
+      if (!tinyCountries.has(country.id)) continue;
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marker.setAttribute('cx', String((country.focus[0] + 180) / 360 * atlas.width));
+      marker.setAttribute('cy', String((90 - country.focus[1]) / 180 * atlas.height));
+      marker.setAttribute('r', '2');
+      marker.setAttribute('fill', '#667273');
+      marker.setAttribute('stroke', 'none');
+      this.map.append(marker);
+      // Markers share their country's color without enlarging its geographic shape.
+      this.mapMarkers.set(country.id, marker);
     }
 
     this.label.className = 'country-label';
@@ -141,6 +178,7 @@ export class Globe {
     this.flatViewport.addEventListener('pointercancel', this.onFlatPointerUp);
     this.map.addEventListener('pointermove', this.onPointerMove);
     this.map.addEventListener('pointerleave', this.onPointerLeave);
+    this.map.addEventListener('keydown', this.onKeyDown);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
     this.resize();
@@ -148,6 +186,23 @@ export class Globe {
   }
 
   private stopFocus = (): void => { this.flight = null; };
+  private onKeyDown = (event: KeyboardEvent): void => {
+    if (!['+', '=', '-', '_'].includes(event.key)) return;
+    event.preventDefault();
+    this.stopFocus();
+    const factor = event.key === '+' || event.key === '=' ? .9 : 1 / .9;
+    if (this.flat) {
+      const rect = this.host.getBoundingClientRect();
+      this.zoomFlatMap(1 / factor, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return;
+    }
+    if (!this.controls) return;
+    this.camera.position.setLength(Math.max(this.minimumDistance,
+      Math.min(this.controls.maxDistance, this.camera.position.length() * factor)));
+    this.controls.target.set(0, 0, 0);
+    this.controls.update();
+    this.onCameraChange();
+  };
   private onCameraChange = (): void => {
     if (this.controls) {
       // Match rotation to altitude: a close view needs much smaller turns.
@@ -232,19 +287,20 @@ export class Globe {
   };
 
   private layoutFlatMap(): void {
-    const width = Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight - 120) * this.map.width / this.map.height);
-    const height = width * this.map.height / this.map.width;
+    const width = Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight - 120) * this.atlas.width / this.atlas.height);
+    const height = width * this.atlas.height / this.atlas.width;
     this.flatPan.x = Math.max(-width * (this.flatZoom - 1) / 2, Math.min(width * (this.flatZoom - 1) / 2, this.flatPan.x));
     this.flatPan.y = Math.max(-height * (this.flatZoom - 1) / 2, Math.min(height * (this.flatZoom - 1) / 2, this.flatPan.y));
     this.map.style.width = `${width}px`;
     this.map.style.height = `${height}px`;
     this.map.style.transform = `translate(-50%, -50%) translate3d(${this.flatPan.x}px, ${this.flatPan.y}px, 0) scale(${this.flatZoom})`;
+    this.map.setAttribute('stroke-width', String(.5 / this.flatZoom));
     this.labelWidth = 0;
   }
 
   private countryAt(longitude: number, latitude: number): Country | null {
-    const x = (longitude + 180) / 360 * this.map.width;
-    const y = (90 - latitude) / 180 * this.map.height;
+    const x = (longitude + 180) / 360 * this.atlas.width;
+    const y = (90 - latitude) / 180 * this.atlas.height;
     return this.atlas.countries.find(country => (this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id))
       && this.context.isPointInPath(this.paths.get(country.id)!, x, y)) ?? null;
   }
@@ -260,7 +316,7 @@ export class Globe {
       if (this.hoveredCountry) return;
       const rect = this.map.getBoundingClientRect();
       for (const country of this.atlas.countries) {
-        if (!this.collectedIds.has(country.id) || !this.markers.has(country.id)) continue;
+        if (!this.collectedIds.has(country.id) || !this.mapMarkers.has(country.id)) continue;
         const x = (country.focus[0] + 180) / 180 - 1;
         const y = country.focus[1] / 90;
         if (Math.hypot((x - this.pointer.x) * rect.width / 2,
@@ -295,40 +351,27 @@ export class Globe {
   private onContextLost = (event: Event): void => {
     event.preventDefault();
     this.disposeRenderer();
-    this.host.replaceChildren(this.map);
+    this.flat = true;
+    this.flatViewport.append(this.map);
+    this.host.replaceChildren(this.flatViewport, this.label);
+    this.layoutFlatMap();
     const help = document.querySelector('#globe-help');
     if (help) setTranslatedText(help, 'lost');
   };
 
   private drawMap(): void {
-    const ctx = this.context;
-    ctx.fillStyle = '#174f7b';
-    ctx.fillRect(0, 0, this.map.width, this.map.height);
-    ctx.lineWidth = .5;
-    ctx.strokeStyle = '#b2bac2';
-    for (const path of this.backgroundPaths) {
-      ctx.fillStyle = '#515b65';
-      ctx.fill(path);
-      ctx.stroke(path);
-    }
     for (const country of this.atlas.countries) {
-      const path = this.paths.get(country.id)!;
-      ctx.fillStyle = this.colors.get(country.id) ?? '#667273';
-      ctx.fill(path);
-      ctx.stroke(path);
-    }
-    for (const country of this.atlas.countries) {
-      if (!this.markers.has(country.id)) continue;
-      ctx.beginPath();
-      ctx.arc((country.focus[0] + 180) / 360 * this.map.width,
-        (90 - country.focus[1]) / 180 * this.map.height, 2, 0, Math.PI * 2);
-      ctx.fillStyle = this.colors.get(country.id) ?? '#667273';
-      ctx.fill();
+      const color = this.colors.get(country.id) ?? '#667273';
+      this.mapCountries.get(country.id)?.setAttribute('fill', color);
+      this.mapMarkers.get(country.id)?.setAttribute('fill', color);
     }
   }
 
   private resize(): void {
-    if (!this.renderer) return;
+    if (!this.renderer) {
+      if (this.flat) this.layoutFlatMap();
+      return;
+    }
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
     this.labelWidth = 0;
@@ -367,18 +410,18 @@ export class Globe {
     }
     if (this.hoverDirty && performance.now() >= this.hoverAfter) this.updateHover();
     this.updateLabel();
-    if (this.renderer) this.frame = requestAnimationFrame(this.animate);
+    if (this.renderer || this.flat) this.frame = requestAnimationFrame(this.animate);
   };
 
   paint(country: Country, color: string): void {
     this.colors.set(country.id, color);
+    this.land?.paint(country.id, color);
     const marker = this.markers.get(country.id);
     if (marker && this.markerLayer) {
       this.markerLayer.setColorAt(marker.index, new Color(color));
       this.markerLayer.instanceColor!.needsUpdate = true;
     }
     this.drawMap();
-    this.texture.needsUpdate = true;
     this.focusCountry(country);
     this.dirty = true;
   }
@@ -418,7 +461,7 @@ export class Globe {
     if (flat) this.labeledCountry = null;
     if (this.renderer) this.renderer.domElement.hidden = flat;
     if (flat) {
-      this.map.className = 'flat-map';
+      this.map.setAttribute('class', 'flat-map');
       setTranslatedAria(this.map, 'map');
       this.host.append(this.flatViewport);
       this.flatViewport.append(this.map);
@@ -441,19 +484,20 @@ export class Globe {
     for (const country of this.atlas.countries) {
       const color = ids.has(country.id) ? '#419b72' : '#667273';
       this.colors.set(country.id, color);
+      this.land?.paint(country.id, color);
       const marker = this.markers.get(country.id);
       if (marker && this.markerLayer) this.markerLayer.setColorAt(marker.index, new Color(color));
     }
     if (this.markerLayer?.instanceColor) this.markerLayer.instanceColor.needsUpdate = true;
-    this.drawMap(); this.texture.needsUpdate = true; this.dirty = true;
+    this.drawMap(); this.dirty = true;
   }
 
   clear(): void {
     this.colors.clear();
+    for (const country of this.atlas.countries) this.land?.paint(country.id, '#667273');
     for (const marker of this.markers.values()) this.markerLayer?.setColorAt(marker.index, new Color('#667273'));
     if (this.markerLayer?.instanceColor) this.markerLayer.instanceColor.needsUpdate = true;
     this.drawMap();
-    this.texture.needsUpdate = true;
     this.resetView();
   }
 
@@ -523,6 +567,7 @@ export class Globe {
     this.renderer?.domElement.removeEventListener('pointerdown', this.centerRotation);
     this.renderer?.domElement.removeEventListener('pointermove', this.onPointerMove);
     this.renderer?.domElement.removeEventListener('pointerleave', this.onPointerLeave);
+    this.renderer?.domElement.removeEventListener('keydown', this.onKeyDown);
     this.renderer?.dispose();
     this.renderer = null;
   }
@@ -531,7 +576,6 @@ export class Globe {
     cancelAnimationFrame(this.frame);
     this.resizeObserver.disconnect();
     this.disposeRenderer();
-    this.texture.dispose();
     this.markerLayer?.dispose();
     this.scene.traverse((object) => {
       if (object instanceof Mesh) {
