@@ -1,23 +1,32 @@
 @font-face {
   font-family: Barlow;
-  src: url('./fonts/Barlow-Regular.ttf') format('truetype');
+  src: url('./fonts/Barlow-Regular.woff2') format('woff2');
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
 }
 @font-face {
   font-family: Barlow;
-  src: url('./fonts/Barlow-SemiBold.ttf') format('truetype');
+  src: url('./fonts/Barlow-SemiBold.woff2') format('woff2');
   font-style: normal;
   font-weight: 600;
-  font-display: swap;
+  font-display: block;
 }
 @font-face {
   font-family: 'Smooch Sans';
-  src: url('./fonts/SmoochSans.ttf') format('truetype');
+  src: url('./fonts/SmoochSans.woff2') format('woff2');
   font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Smooch Sans Fallback';
+  src: local('Arial Bold');
+  font-weight: 700;
+  size-adjust: 65.9441%;
+  ascent-override: 136.4793%;
+  descent-override: 45.4931%;
+  line-gap-override: 0%;
 }
 :root {
   font-family: Barlow, 'Segoe UI', sans-serif;
@@ -65,7 +74,7 @@ input { caret-color: var(--ink); }
 .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; flex-shrink: 0; }
 .brand-symbol { width: 64px; height: 48px; flex-shrink: 0; }
 .brand-orbit { transform-origin: 32px 32px; }
-.brand-wordmark { font-family: 'Smooch Sans', Barlow, sans-serif; font-size: 45px; font-weight: 700; line-height: 1; letter-spacing: -.02em; white-space: nowrap; }
+.brand-wordmark { font-family: 'Smooch Sans', 'Smooch Sans Fallback', Barlow, sans-serif; font-size: 45px; font-weight: 700; line-height: 1; letter-spacing: -.02em; white-space: nowrap; }
 .mode-label { font-size: var(--body-size); font-weight: 400; margin: 0; line-height: 1.3; }
 .language-button { margin-left: auto; min-height: 44px; padding: 8px 2px; border: 0; background: transparent; color: var(--ink); font-size: var(--body-size); }
 .language-button:hover { text-decoration: underline; text-underline-offset: 5px; }
@@ -260,7 +269,7 @@ select:disabled { opacity: .5; }
 .profile-row .secondary-button { margin: 0; flex-shrink: 0; }
 .profile-note { margin: 8px 0 0; color: var(--muted); font-size: var(--meta-size); }
 .profile-note.error { color: var(--error-text); }
-.home-wordmark { font: 700 5rem/1 'Smooch Sans', Barlow, sans-serif; letter-spacing: -.02em; }
+.home-wordmark { font: 700 5rem/1 'Smooch Sans', 'Smooch Sans Fallback', Barlow, sans-serif; letter-spacing: -.02em; }
 .home-intro { margin: 16px 0 24px; color: var(--muted); }
 .resume-room { display: block; margin-bottom: 20px; text-align: center; text-decoration: none; }
 .home-choices { border-top: 1px solid var(--line); }
@@ -352,6 +361,13 @@ select:disabled { opacity: .5; }
 .theme-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px; padding: 8px; color: var(--ink); border: 0; background: transparent; font-size: var(--meta-size); white-space: nowrap; }
 .theme-button:hover { background: var(--option-active); border-radius: 6px; }
 .theme-button svg { width: 20px; height: 20px; flex-shrink: 0; }
+/* Only manual theme changes animate, so loading a saved theme never fades in. */
+:root[data-theme-transition], :root[data-theme-transition] * {
+  transition: background-color 160ms ease-out, color 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out;
+}
+:root[data-theme-transition][data-motion='reduced'], :root[data-theme-transition][data-motion='reduced'] * {
+  transition: none;
+}
 .theme-sun { display: none; }
 :root[data-theme='dark'] .theme-moon { display: none; }
 :root[data-theme='dark'] .theme-sun { display: block; }
