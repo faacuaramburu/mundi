@@ -363,10 +363,11 @@ select:disabled { opacity: .5; }
 .theme-button svg { width: 20px; height: 20px; flex-shrink: 0; }
 /* Only manual theme changes animate, so loading a saved theme never fades in. */
 :root[data-theme-transition], :root[data-theme-transition] * {
-  transition: background-color 160ms ease-out, color 160ms ease-out, border-color 160ms ease-out, transform 120ms ease-out;
+  transition: background-color 300ms ease-out, color 300ms ease-out, border-color 300ms ease-out, transform 120ms ease-out;
 }
 :root[data-theme-transition][data-motion='reduced'], :root[data-theme-transition][data-motion='reduced'] * {
-  transition: none;
+  /* Reduce spatial motion while keeping the page's color change in sync. */
+  transition: background-color 100ms ease-out, color 100ms ease-out, border-color 100ms ease-out;
 }
 .theme-sun { display: none; }
 :root[data-theme='dark'] .theme-moon { display: none; }

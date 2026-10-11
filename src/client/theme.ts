@@ -20,7 +20,7 @@ export function initializeTheme(): void {
     render();
     transitionTimer = window.setTimeout(() => {
       document.documentElement.removeAttribute('data-theme-transition');
-    }, 200);
+    }, 350);
     try { localStorage.setItem('mundi-theme', dark ? 'dark' : 'light'); }
     catch { /* The current page still uses the selected theme. */ }
   }
