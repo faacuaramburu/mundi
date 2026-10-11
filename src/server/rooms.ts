@@ -136,6 +136,11 @@ export class Rooms {
       return;
     }
     if (room.phase !== 'playing' || !room.target) throw new RoomError('NOT_PLAYING');
+    if (action.type === 'giveup') {
+      if (room.rules.players !== 1 || room.rules.mode !== 'free') throw new RoomError('FORBIDDEN');
+      this.finish(room, 'giveup');
+      return;
+    }
     if (room.rules.play === 'turns' && room.turn !== seat) throw new RoomError('NOT_YOUR_TURN');
     if (!this.geography.ids.includes(action.countryId)) throw new RoomError('INVALID_REQUEST', 400);
     const seen = room.rules.play === 'turns' ? room.players.flatMap(other => other?.guesses ?? []) : player.guesses;

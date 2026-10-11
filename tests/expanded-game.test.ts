@@ -31,6 +31,30 @@ function reject(action: () => void, expected: string) {
   expect((rejected as RoomError).code).toBe(expected);
 }
 describe('expanded play', () => {
+  it('giving up reveals the solo target without awarding a win or a correct guess, and starts a fresh round', () => {
+    const s = game({ players: 1, mode: 'free', quota: 8 });
+    reject(() => s.rooms.action(s.id, 0, { type: 'giveup', round: 1 }), 'NOT_PLAYING');
+    s.start(); s.guess(0, 'BRA');
+    expect(s.snapshot().result).toBeNull();
+    s.rooms.action(s.id, 0, { type: 'giveup', round: 1 });
+    expect(s.snapshot().phase).toBe('finished');
+    expect(s.snapshot().result).toMatchObject({ targetId: 'ARG', winner: null, reason: 'giveup' });
+    expect(s.snapshot().result?.histories[0]?.map(guess => guess.countryId)).toEqual(['BRA']);
+    expect(s.snapshot().result?.histories[0]?.some(guess => guess.correct)).toBe(false);
+    reject(() => s.guess(0, 'ARG'), 'NOT_PLAYING');
+    reject(() => s.rooms.action(s.id, 0, { type: 'giveup', round: 1 }), 'NOT_PLAYING');
+    s.rooms.action(s.id, 0, { type: 'rematch', value: true, round: 1 });
+    expect(s.snapshot()).toMatchObject({ phase: 'playing', round: 2, guesses: [], result: null });
+    reject(() => s.rooms.action(s.id, 0, { type: 'giveup', round: 1 }), 'STALE_ROUND');
+    s.guess(0, 'BRA', 2); expect(s.snapshot().result?.winner).toBe(0);
+  });
+  it.each(['race', 'turns'] as const)('rejects giving up in multiplayer %s without revealing the target', play => {
+    const s = game({ players: 2, play, mode: 'free', quota: 8 }); s.start();
+    reject(() => s.rooms.action(s.id, 0, { type: 'giveup', round: 1 }), 'FORBIDDEN');
+    expect(s.snapshot()).toMatchObject({ phase: 'playing', result: null, guesses: [] });
+    expect(JSON.stringify(s.snapshot())).not.toContain('ARG');
+    s.guess(0, 'ARG'); expect(s.snapshot().result?.winner).toBe(0);
+  });
   it('shares normalized names, permits lobby edits and retains them during play and rematch', () => {
     const s = game({ players: 2, mode: 'free', quota: 8 });
     s.rooms.join(s.id, 'p0', '  José  M. '); s.rooms.join(s.id, 'p1', 'Lucía_2');

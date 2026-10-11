@@ -50,6 +50,25 @@ async function rejectedUpgrade(url: string, cookie: string | undefined, requestO
 }
 afterEach(async () => { for (const client of clients.splice(0)) client.terminate(); await Promise.all(apps.splice(0).map(app => app.close())); });
 describe('private multiplayer transport', () => {
+  it('validates give-up messages and reveals a solo answer only after an authorized surrender', async () => {
+    const s = await setup();
+    const created = await s.post('/api/rooms', { mode: 'free', quota: 8, players: 1 }, s.cookie);
+    const id = (created.json() as { roomId: string }).roomId;
+    const peer = await connect(`${s.base}/api/rooms/${id}/socket`, s.cookie);
+    peer.socket.send(JSON.stringify({ type: 'ready', value: true, round: 1 }));
+    const before = await peer.until(m => m.type === 'snapshot' && m.phase === 'playing') as Snapshot;
+    expect(before.result).toBeNull();
+    peer.socket.send(JSON.stringify({ type: 'giveup', round: 1, countryId: 'ARG' }));
+    await peer.until(m => m.type === 'error' && m.error === 'INVALID_REQUEST');
+    expect(s.rooms.snapshot(id, 0).phase).toBe('playing');
+    peer.socket.send(JSON.stringify({ type: 'giveup', round: 1 }));
+    const after = await peer.until(m => m.type === 'snapshot' && m.phase === 'finished') as Snapshot;
+    expect(after.result).toEqual({ targetId: 'ARG', winner: null, reason: 'giveup', histories: [[]] });
+    expect(after.you.count).toBe(0);
+    peer.socket.send(JSON.stringify({ type: 'rematch', value: true, round: 1 }));
+    const next = await peer.until(m => m.type === 'snapshot' && m.round === 2) as Snapshot;
+    expect(next).toMatchObject({ phase: 'playing', result: null, guesses: [] });
+  });
   it('publishes names over sockets and rejects invalid profile payloads', async () => {
     const s = await setup();
     expect((await s.post(`/api/rooms/${s.roomId}/join`, { name: '  Facu ' }, s.cookie)).statusCode).toBe(200);

@@ -22,6 +22,9 @@ export function parseAction(input: unknown): Action {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new RoomError('INVALID_REQUEST', 400);
   const value = input as Record<string, unknown>;
   if (!Number.isSafeInteger(value.round) || (value.round as number) < 1) throw new RoomError('INVALID_REQUEST', 400);
+  if (value.type === 'giveup' && Object.keys(value).length === 2) {
+    return { type: 'giveup', round: value.round as number };
+  }
   if (value.type === 'guess' && Object.keys(value).length === 3 && typeof value.countryId === 'string' && /^[A-Z]{3}$/.test(value.countryId)) {
     return { type: 'guess', countryId: value.countryId, round: value.round as number };
   }

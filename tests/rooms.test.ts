@@ -113,6 +113,13 @@ describe('authoritative rooms', () => {
   });
 });
 describe('socket action schema', () => {
+  it('requires a positive numeric round and no extra fields for giving up', () => {
+    expect(parseAction({ type: 'giveup', round: 1 })).toEqual({ type: 'giveup', round: 1 });
+    for (const value of [{ type: 'giveup' }, { type: 'giveup', round: '1' }, { type: 'giveup', round: 0 },
+      { type: 'giveup', round: 1.5 }, { type: 'giveup', round: 1, seat: 0 }]) {
+      code(() => parseAction(value), 'INVALID_REQUEST');
+    }
+  });
   it.each([null, [], {}, { type: 'guess', countryId: 'ARG', round: '1' }, { type: 'guess', countryId: 'ARG', round: 1, seat: 0 },
     { type: 'guess', countryId: 'ARG', round: 1, timestamp: 0 }, { type: 'ready', value: 'true', round: 1 }, { type: 'guess', countryId: '../', round: 1 }])('rejects malformed/extra fields: %j', value => {
     code(() => parseAction(value), 'INVALID_REQUEST');

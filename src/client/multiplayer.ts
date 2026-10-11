@@ -13,6 +13,7 @@ import { renderRoundResult } from './round-result.js';
 import { getPlayerName, onProfileChange } from './profile.js';
 import { animateGuess, animateRoundResult } from './game-motion.js';
 import { roomApiPath } from './room-path.js';
+import { bindGiveUp } from './give-up.js';
 
 const element = <T extends HTMLElement>(id: string): T => document.querySelector<T>(`#${id}`)!;
 function errorMessage(code: ErrorCode): Message {
@@ -44,6 +45,9 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   let receivedAt = 0; let pending = false; let lastRound = 0; let painted = 0; let revealedRound = 0;
   let error: Message | null = null;
   let newDiscovery = false;
+  const showGiveUp = bindGiveUp(() => {
+    if (snapshot) send({ type: 'giveup', round: snapshot.round });
+  });
   const isConnected = () => socket?.readyState === WebSocket.OPEN && !stopped;
   const serverTime = () => snapshot ? snapshot.serverNow + performance.now() - receivedAt : 0;
   const clock = (ms: number) => { const seconds = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; };
@@ -61,6 +65,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       && (snapshot.endsAt === null || now < snapshot.endsAt) && (snapshot.you.remaining === null || snapshot.you.remaining > 0)
       && (snapshot.turn === null || snapshot.turn === snapshot.seat);
     input.disabled = !canGuess; guessButton.disabled = !canGuess;
+    showGiveUp(snapshot.rules.players === 1 && snapshot.rules.mode === 'free' && snapshot.phase === 'playing', canGuess);
   }
   function renderHistory(node: HTMLElement, guesses: Guess[]): void {
     node.replaceChildren();
@@ -143,10 +148,10 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       const country = countries.get(s.result.targetId)!;
       const outcome = s.result.winner === null ? 'draw' : s.result.winner === s.seat ? 'win' : 'lose';
       const winner = s.result.winner;
-      const headline = outcome === 'lose' && winner !== null
+      const headline = s.result.reason === 'giveup' ? t('gaveUp') : outcome === 'lose' && winner !== null
         ? winnerMessage(winner + 1, s.result.histories.at(winner)?.length ?? 0, s.players.at(winner)?.name) : t(outcome);
       const notes: string[] = [];
-      if (s.result.reason !== 'correct') {
+      if (s.result.reason !== 'correct' && s.result.reason !== 'giveup') {
         notes.push(t(winner !== null ? 'closestResult' : s.result.reason === 'quota' ? 'quotaResult'
           : s.result.reason === 'inactive' ? 'inactiveResult' : 'deadlineResult'));
       }
@@ -205,6 +210,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       }
       if (wasPlaying && message.result && feedback.classList.contains('round-result')) {
         animateRoundResult(feedback, message.result.winner === message.seat);
+        if (message.result.reason === 'giveup') rematchButton.focus();
       }
       if (message.rules.players === 1 && message.phase === 'waiting' && !message.you.ready) send({ type: 'ready', value: true, round: message.round });
     });

@@ -7,6 +7,7 @@ import { turnBrandOrbit } from './brand-motion.js';
 import { applyHistoryOrder } from './history-order.js';
 import { renderRoundResult } from './round-result.js';
 import { animateGuess, animateRoundResult } from './game-motion.js';
+import { bindGiveUp } from './give-up.js';
 
 function element<T extends HTMLElement>(selector: string): T {
   const result = document.querySelector<T>(selector);
@@ -43,6 +44,17 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
   const translations: (() => void)[] = [];
   feedback.removeAttribute('data-i18n');
   let renderFeedback = () => { feedback.textContent = t('begin'); };
+  const showGiveUp = bindGiveUp(() => {
+    if (finished) return;
+    finished = true;
+    input.disabled = true; guessButton.disabled = true;
+    closeSuggestions(); showGiveUp(false);
+    globe.paint(target, getHint(0, true, false).color);
+    renderFeedback = () => { renderRoundResult(feedback, target, t('gaveUp'), false); };
+    renderFeedback();
+    animateRoundResult(feedback, false);
+    element<HTMLButtonElement>('#new-round').focus();
+  });
   function showFeedback(render: () => string): void {
     renderFeedback = () => { feedback.textContent = render(); };
     renderFeedback();
@@ -57,6 +69,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
   if (import.meta.hot) import.meta.hot.dispose(unsubscribe);
 
   form.hidden = false;
+  showGiveUp(true);
   element<HTMLElement>('#practice-actions').hidden = false;
   setTranslatedText(element<HTMLElement>('#mode-label'), 'practice');
   renderFeedback();
@@ -191,6 +204,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     empty.hidden = true;
     if (hint.correct) {
       finished = true;
+      showGiveUp(false);
       input.disabled = true;
       guessButton.disabled = true;
       renderFeedback = () => { renderRoundResult(feedback, target, t('win'), true); };
@@ -214,6 +228,7 @@ export function startPractice(atlas: Atlas, globe: Globe): void {
     guessed.clear();
     selected = null;
     finished = false;
+    showGiveUp(true);
     input.disabled = false;
     guessButton.disabled = false;
     input.value = '';

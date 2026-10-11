@@ -227,6 +227,9 @@ h2 { margin: 0; font-size: inherit; font-weight: 600; }
 .room-rule { color: var(--muted); font-size: .875rem; margin: 14px 0 20px; }
 .room-lobby .guess-button { width: 100%; }
 .text-link { display: inline-block; color: var(--muted); font-size: .875rem; text-underline-offset: 4px; padding-block: 12px; min-height: 44px; }
+.give-up-actions { display: flex; gap: 24px; margin-top: 4px; }
+.give-up-actions button { background: none; border: 0; padding-inline: 0; text-decoration: underline; }
+.give-up-actions button:hover:not(:disabled) { color: var(--ink); }
 .round-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .round-clock { margin-left: auto; font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .round-heading:has(#round-title[hidden]) .round-clock { margin-inline: auto; }
