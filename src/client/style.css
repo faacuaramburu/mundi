@@ -162,6 +162,7 @@ h2 { margin: 0; font-size: inherit; font-weight: 600; }
 .guess-number { color: var(--muted); font-size: var(--meta-size); font-variant-numeric: tabular-nums; min-width: 20px; }
 .guess-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .guess-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.guess-player { display: block; margin-top: 3px; color: var(--muted); font-size: var(--meta-size); font-weight: 400; }
 .guess-hint { max-width: 48%; text-align: right; font-weight: 600; font-size: .9em; font-variant-numeric: tabular-nums; }
 .practice-actions { margin-top: 24px; }
 .new-round-button { width: 100%; min-height: 54px; padding: 12px 20px; border: 1px solid var(--field-border); border-radius: 6px; color: var(--ink); background: var(--field); font-weight: 600; }

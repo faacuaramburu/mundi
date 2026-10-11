@@ -1,6 +1,6 @@
 import { setTranslatedAria } from './i18n.js';
 
-let closestFirst = false;
+let closestFirst = true;
 
 export function applyHistoryOrder(history: HTMLElement, revealCorrect = false): void {
   const entries = Array.from(history.children) as HTMLElement[];
@@ -16,11 +16,15 @@ export function initializeHistoryOrder(): void {
   const button = document.querySelector<HTMLButtonElement>('#history-order');
   const history = document.querySelector<HTMLElement>('#guess-history');
   if (!button || !history) return;
-  button.addEventListener('click', () => {
-    closestFirst = !closestFirst;
+  const renderOrder = (): void => {
     button.setAttribute('aria-pressed', String(closestFirst));
     button.querySelector('.sort-arrow')!.textContent = closestFirst ? '↑' : '↕';
     setTranslatedAria(button, closestFirst ? 'sortRecent' : 'sortDistance');
     applyHistoryOrder(history, true);
+  };
+  renderOrder();
+  button.addEventListener('click', () => {
+    closestFirst = !closestFirst;
+    renderOrder();
   });
 }

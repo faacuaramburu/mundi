@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import type { Action, Band, ErrorCode, Guess, Phase, Progress, Reason, Rules, Seat, Snapshot } from '../shared/multiplayer.js';
+import type { Action, Band, ErrorCode, Guess, Phase, PlayerGuess, Progress, Reason, Rules, Seat, Snapshot } from '../shared/multiplayer.js';
 import { normalizePlayerName } from '../shared/profile.js';
 
 export interface Geography {
@@ -28,8 +28,8 @@ function playerName(value: string): string {
   if (name === null) throw new RoomError('INVALID_REQUEST', 400);
   return name;
 }
-function publicGuess(guess: Accepted): Guess {
-  return { countryId: guess.countryId, distance: guess.distance, correct: guess.correct, border: guess.border, band: guess.band };
+function publicGuess(guess: Accepted, playerSeat: Seat): PlayerGuess {
+  return { countryId: guess.countryId, distance: guess.distance, correct: guess.correct, border: guess.border, band: guess.band, playerSeat };
 }
 function best(player: Player): Accepted | undefined {
   return player.guesses.reduce<Accepted | undefined>((winner, guess) => !winner || guess.distance < winner.distance ? guess : winner, undefined);
@@ -226,13 +226,17 @@ export class Rooms {
       count: other.guesses.length, remaining: room.rules.mode === 'free' ? null : room.rules.quota - other.guesses.length,
       bestBand: best(other)?.band ?? null });
     const opponent = room.players.at(seat === 0 ? 1 : 0);
+    const guesses = room.rules.play === 'turns'
+      ? room.players.flatMap((other, playerSeat) => other?.guesses.map(guess => ({ guess, seat: playerSeat as Seat })) ?? [])
+        .sort((a, b) => a.guess.order - b.guess.order).map(({ guess, seat }) => publicGuess(guess, seat))
+      : player.guesses.map(guess => publicGuess(guess, seat));
     return { type: 'snapshot', roomId: room.id, seat, round: room.round, phase: room.phase, rules: { ...room.rules },
       serverNow: this.now(), startsAt: room.startsAt, endsAt: room.endsAt, idleEndsAt: room.idleEndsAt,
       expiresAt: room.expiresAt, you: progress(player), opponent: opponent ? progress(opponent) : null,
       players: room.players.map(other => other ? progress(other) : null), turn: room.turn, turnEndsAt: room.turnEndsAt,
-      guesses: (room.rules.play === 'turns' ? room.players.flatMap(other => other?.guesses ?? []).sort((a, b) => a.order - b.order) : player.guesses).map(publicGuess),
+      guesses,
       result: room.result && room.target ? { targetId: room.target,
-        ...room.result, histories: room.players.map(other => other?.guesses.map(publicGuess) ?? []) } : null };
+        ...room.result, histories: room.players.map((other, playerSeat) => other?.guesses.map(guess => publicGuess(guess, playerSeat as Seat)) ?? []) } : null };
   }
 }
 
