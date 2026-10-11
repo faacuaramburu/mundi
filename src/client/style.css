@@ -75,6 +75,8 @@ input { caret-color: var(--ink); }
 .flat-map-viewport { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
 .flat-map-viewport:active { cursor: grabbing; }
 .globe-host .flat-map { position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; overflow: hidden; touch-action: none; }
+.globe-host .flat-map:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+.globe-host :is(.globe-canvas, .flat-map)[data-pointer-focus]:focus { outline: none; }
 .index-views { display: flex; gap: 8px; margin-bottom: 16px; }
 .index-views button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--field-border); background: var(--field); color: var(--ink); font-size: var(--meta-size); }
 .index-views button[aria-pressed="true"] { background: var(--primary); color: var(--primary-ink); }

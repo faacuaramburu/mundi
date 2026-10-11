@@ -112,6 +112,8 @@ export class Globe {
       setTranslatedAria(renderer.domElement, 'globeControls');
       renderer.domElement.tabIndex = 0;
       renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
+      renderer.domElement.addEventListener('pointerdown', this.markPointerFocus);
+      renderer.domElement.addEventListener('blur', this.clearPointerFocus);
       renderer.domElement.addEventListener('pointerdown', this.centerRotation);
       renderer.domElement.addEventListener('pointermove', this.onPointerMove);
       renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
@@ -178,6 +180,8 @@ export class Globe {
     this.flatViewport.addEventListener('pointercancel', this.onFlatPointerUp);
     this.map.addEventListener('pointermove', this.onPointerMove);
     this.map.addEventListener('pointerleave', this.onPointerLeave);
+    this.map.addEventListener('pointerdown', this.markPointerFocus);
+    this.map.addEventListener('blur', this.clearPointerFocus);
     this.map.addEventListener('keydown', this.onKeyDown);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -186,7 +190,14 @@ export class Globe {
   }
 
   private stopFocus = (): void => { this.flight = null; };
+  private markPointerFocus = (event: PointerEvent): void => {
+    (event.currentTarget as Element).setAttribute('data-pointer-focus', '');
+  };
+  private clearPointerFocus = (event: Event): void => {
+    (event.currentTarget as Element).removeAttribute('data-pointer-focus');
+  };
   private onKeyDown = (event: KeyboardEvent): void => {
+    this.clearPointerFocus(event);
     if (!['+', '=', '-', '_'].includes(event.key)) return;
     event.preventDefault();
     this.stopFocus();
@@ -580,6 +591,8 @@ export class Globe {
     this.controls?.removeEventListener('change', this.onCameraChange);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.onContextLost);
+    this.renderer?.domElement.removeEventListener('pointerdown', this.markPointerFocus);
+    this.renderer?.domElement.removeEventListener('blur', this.clearPointerFocus);
     this.renderer?.domElement.removeEventListener('pointerdown', this.centerRotation);
     this.renderer?.domElement.removeEventListener('pointermove', this.onPointerMove);
     this.renderer?.domElement.removeEventListener('pointerleave', this.onPointerLeave);
