@@ -50,7 +50,16 @@ export class Rooms {
       const existing = [...this.rooms.values()].find(room => room.players.length === 1 && room.players[0]?.credential === credential);
       if (existing) return existing.id;
     }
-    if (this.rooms.size >= this.capacity || [...this.rooms.values()].filter(room => room.players.some(player => player?.credential === credential)).length >= 3) {
+    const memberships = [...this.rooms.values()].filter(room => room.players.some(player => player?.credential === credential));
+    const abandoned = memberships.filter(room => room.players[0]?.credential === credential && (room.phase === 'waiting' || room.phase === 'finished')
+      && !room.players.some(player => player?.connected));
+    // A new room can replace an old lobby/result, but never another player's room or a live round.
+    while (abandoned.length && (this.rooms.size >= this.capacity || memberships.length >= 3)) {
+      const old = abandoned.shift()!;
+      this.rooms.delete(old.id);
+      memberships.splice(memberships.indexOf(old), 1);
+    }
+    if (this.rooms.size >= this.capacity || memberships.length >= 3) {
       throw new RoomError('CAPACITY', 429);
     }
     const id = randomBytes(18).toString('base64url');

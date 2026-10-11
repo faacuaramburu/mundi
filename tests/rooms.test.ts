@@ -107,6 +107,71 @@ describe('authoritative rooms', () => {
     const s = setup(); s.move(30 * 60_000); expect(s.rooms.tick()).toContain(s.id); code(() => s.snapshot(), 'ROOM_GONE');
     const rooms = new Rooms(geo, Date.now, ids => ids[0]!, 1); rooms.create('a', { mode: 'free', quota: 8 }); code(() => rooms.create('b', { mode: 'free', quota: 8 }), 'CAPACITY');
   });
+  it('replaces abandoned lobbies instead of blocking the fourth room', () => {
+    const rooms = new Rooms(geo); const rules: Rules = { mode: 'free', quota: 8 };
+    const first = rooms.create('creator', rules);
+    const second = rooms.create('creator', rules);
+    const third = rooms.create('creator', rules);
+    const fourth = rooms.create('creator', rules);
+    code(() => rooms.snapshot(first, 0), 'ROOM_GONE');
+    for (const id of [second, third, fourth]) expect(rooms.snapshot(id, 0).phase).toBe('waiting');
+    expect(rooms.resumable('creator')).toBe(fourth);
+  });
+  it('reclaims only the creator\'s abandoned rooms at global capacity', () => {
+    const rooms = new Rooms(geo, Date.now, ids => ids[0]!, 2);
+    const own = rooms.create('creator', { mode: 'free', quota: 8 });
+    const other = rooms.create('guest', { mode: 'free', quota: 8 });
+    code(() => rooms.create('stranger', { mode: 'free', quota: 8 }), 'CAPACITY');
+    const replacement = rooms.create('creator', { mode: 'free', quota: 8 });
+    code(() => rooms.snapshot(own, 0), 'ROOM_GONE');
+    expect(rooms.snapshot(other, 0).phase).toBe('waiting');
+    expect(rooms.snapshot(replacement, 0).phase).toBe('waiting');
+  });
+  it('preserves reconnectable lobbies until the player needs another room', () => {
+    const rooms = new Rooms(geo); const rules: Rules = { mode: 'free', quota: 8 };
+    const id = rooms.create('creator', rules); rooms.connect(id, 0); rooms.disconnect(id, 0);
+    rooms.create('creator', rules);
+    expect(rooms.join(id, 'creator')).toBe(0); rooms.connect(id, 0);
+    expect(rooms.snapshot(id, 0).you.connected).toBe(true);
+  });
+  it('does not let a guest delete rooms owned by other players to bypass capacity', () => {
+    const rooms = new Rooms(geo); const rules: Rules = { mode: 'free', quota: 8 };
+    const ids = Array.from({ length: 3 }, (_, index) => {
+      const id = rooms.create(`owner-${index}`, rules); rooms.join(id, 'guest'); return id;
+    });
+    code(() => rooms.create('guest', rules), 'CAPACITY');
+    for (const id of ids) expect(rooms.snapshot(id, 0).phase).toBe('waiting');
+  });
+  it('does not discard a lobby while another player is still connected', () => {
+    const rooms = new Rooms(geo); const rules: Rules = { mode: 'free', quota: 8 };
+    const ids = Array.from({ length: 3 }, (_, index) => {
+      const id = rooms.create('creator', rules); rooms.join(id, `guest-${index}`); rooms.connect(id, 1); return id;
+    });
+    code(() => rooms.create('creator', rules), 'CAPACITY');
+    for (const id of ids) expect(rooms.snapshot(id, 1).you.connected).toBe(true);
+    rooms.disconnect(ids[0]!, 1);
+    expect(rooms.create('creator', rules)).not.toBe(ids[0]);
+    for (const id of ids.slice(1)) expect(rooms.snapshot(id, 1).you.connected).toBe(true);
+  });
+  it('preserves ongoing rounds even when every player temporarily disconnects', () => {
+    const s = setup({ mode: 'free', quota: 8 }); s.start(); s.guess(0, 'BRA');
+    s.rooms.disconnect(s.id, 0); s.rooms.disconnect(s.id, 1);
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    s.rooms.connect(s.id, 0);
+    expect(s.snapshot()).toMatchObject({ phase: 'playing', guesses: [{ countryId: 'BRA' }] });
+  });
+  it('reclaims finished rooms after everyone leaves and keeps their live results', () => {
+    const s = setup({ mode: 'free', quota: 8 }); s.start(); s.guess(0, 'ARG');
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    expect(s.snapshot().result?.winner).toBe(0);
+    s.rooms.disconnect(s.id, 0); s.rooms.disconnect(s.id, 1);
+    s.rooms.create('creator', { mode: 'free', quota: 8 });
+    code(() => s.snapshot(), 'ROOM_GONE');
+  });
   it('keeps a rematch alive past the previous result retention window', () => {
     const s = setup({ mode: 'free', quota: 8 }); s.start(); s.guess(0, 'ARG');
     const oldExpiry = s.snapshot().expiresAt;
