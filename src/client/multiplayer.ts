@@ -14,6 +14,7 @@ import { getPlayerName, onProfileChange } from './profile.js';
 import { animateGuess, animateRoundResult } from './game-motion.js';
 import { roomApiPath } from './room-path.js';
 import { bindGiveUp } from './give-up.js';
+import { formatRoomCode, normalizeRoomCode } from '../shared/room-code.js';
 
 const element = <T extends HTMLElement>(id: string): T => document.querySelector<T>(`#${id}`)!;
 function errorMessage(code: ErrorCode): Message {
@@ -37,6 +38,10 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   const reconnectButton = element<HTMLButtonElement>('reconnect-button');
   const mode = element<HTMLSelectElement>('room-mode'); const quota = element<HTMLSelectElement>('room-quota');
   const invite = element<HTMLInputElement>('invite-link');
+  const joinCodeForm = element<HTMLFormElement>('join-by-code');
+  const codeInput = element<HTMLInputElement>('join-code');
+  const codeButton = element<HTMLButtonElement>('join-code-button');
+  const codeFeedback = element('join-code-feedback');
   const play = element<HTMLSelectElement>('room-play'); const playerCount = element<HTMLSelectElement>('room-players');
   const startSolo = new URLSearchParams(location.search).get('play') === 'solo';
   let roomId = new URLSearchParams(location.search).get('room');
@@ -114,6 +119,20 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     element('round-title').textContent = t(title);
     element('room-rules').textContent = solo ? t('soloRule') : `${s.rules.mode === 'free' ? t('freeMode') : `${s.rules.quota} ${t('quotaLabel').toLowerCase()}`} · ${t(s.rules.play === 'turns' ? 'turnsRule' : 'threeMinutes')}`;
     element('invite-area').hidden = solo || s.phase !== 'waiting';
+    element<HTMLInputElement>('room-code').value = s.roomCode ? formatRoomCode(s.roomCode) : '';
+    element('room-scoreboard').hidden = solo;
+    const scores = element('room-scores');
+    const entries = s.players.map((player, seat) => ({ name: `${playerLabel(s, seat)}${seat === s.seat ? ` (${t('you')})` : player ? '' : ` · ${t('waiting')}`}`, wins: player?.wins ?? 0 }));
+    const scoreKey = JSON.stringify(entries);
+    if (scores.dataset.scores !== scoreKey) {
+      scores.dataset.scores = scoreKey; scores.replaceChildren();
+      for (const entry of entries) {
+        const row = document.createElement('li'); const name = document.createElement('span'); const wins = document.createElement('strong');
+        name.className = 'score-name'; name.textContent = entry.name;
+        wins.className = 'score-wins'; wins.textContent = String(entry.wins);
+        row.append(name, wins); scores.append(row);
+      }
+    }
     const progress = (label: string, player: Snapshot['you'] | null): string => {
       if (!player) return t('waiting');
       const state = !player.connected ? t('offline') : s.phase === 'waiting' || s.phase === 'countdown' ? t(player.ready ? 'readyStatus' : 'notReady') : t('online');
@@ -248,6 +267,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   }
   function enter(id: string): void {
     roomApiPath(id);
+    joinCodeForm.hidden = true;
     roomId = id; error = null;
     feedback.textContent = t('connecting');
     const url = new URL(location.href); url.search = ''; url.searchParams.set('room', id); history.replaceState(null, '', url);
@@ -265,11 +285,28 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   }
   mode.addEventListener('change', updateRules); play.addEventListener('change', updateRules);
   element<HTMLFormElement>('create-room').addEventListener('submit', event => {
-    event.preventDefault(); createButton.disabled = true; createButton.textContent = t('creatingRoom'); error = null;
+    event.preventDefault(); if (createButton.disabled || codeButton.disabled) return;
+    createButton.disabled = true; codeButton.disabled = true; createButton.textContent = t('creatingRoom'); error = null;
     void request('/api/rooms', { mode: mode.value, quota: Number(quota.value), play: play.value, players: Number(playerCount.value) } as Rules)
       .then(data => enter(data.roomId)).catch(() => { if (!error) showError('errorGeneric'); })
-      .finally(() => { createButton.disabled = false; createButton.textContent = t('createRoom'); });
+      .finally(() => { createButton.disabled = false; codeButton.disabled = false; createButton.textContent = t('createRoom'); });
   });
+  function setCodeFeedback(message: Message | null): void {
+    codeInput.setAttribute('aria-invalid', String(!!message));
+    if (message) setTranslatedText(codeFeedback, message);
+    else { codeFeedback.textContent = ''; codeFeedback.removeAttribute('data-i18n'); }
+  }
+  joinCodeForm.addEventListener('submit', event => {
+    event.preventDefault(); if (createButton.disabled || codeButton.disabled) return;
+    const code = normalizeRoomCode(codeInput.value);
+    if (!code) { setCodeFeedback('codeInvalid'); codeInput.focus(); return; }
+    codeButton.disabled = true; createButton.disabled = true; codeButton.textContent = t('joiningRoom'); setCodeFeedback(null); error = null;
+    void request('/api/rooms/join', { code }).then(data => enter(data.roomId)).catch(() => {
+      setCodeFeedback(error === 'errorGone' ? 'codeNotFound' : error ?? 'errorGeneric');
+      error = null; render();
+    }).finally(() => { codeButton.disabled = false; createButton.disabled = false; codeButton.textContent = t('joinRoom'); });
+  });
+  codeInput.addEventListener('input', () => { setCodeFeedback(null); });
   joinButton.addEventListener('click', () => { error = null; void join(); });
   readyButton.addEventListener('click', () => { if (snapshot) send({ type: 'ready', value: !snapshot.you.ready, round: snapshot.round }); });
   rematchButton.addEventListener('click', () => { if (snapshot) send({ type: 'rematch', value: !snapshot.you.rematch, round: snapshot.round }); });
@@ -280,6 +317,13 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
     }).catch(() => { invite.focus(); invite.select(); showError('copyManually'); });
   });
   invite.addEventListener('click', () => invite.select());
+  const roomCode = element<HTMLInputElement>('room-code');
+  element('copy-code').addEventListener('click', () => {
+    void (async () => { if (!navigator.clipboard) throw new Error('Clipboard unavailable'); await navigator.clipboard.writeText(roomCode.value); })().then(() => {
+      element('copy-code').textContent = t('copied'); window.setTimeout(() => { if (!disposed) element('copy-code').textContent = t('copyLink'); }, 2000);
+    }).catch(() => { roomCode.focus(); roomCode.select(); showError('copyCodeManually'); });
+  });
+  roomCode.addEventListener('click', () => roomCode.select());
   const unbind = bindCountryInput(atlas.countries, country => {
     if (!snapshot) return;
     if (snapshot.guesses.some(guess => guess.countryId === country.id)) { showError('duplicate'); return; }
@@ -288,12 +332,14 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   historySection.hidden = true;
   lobby.hidden = false; feedback.removeAttribute('data-i18n'); feedback.textContent = '';
   if (roomId) {
+    joinCodeForm.hidden = true;
     element('create-room').hidden = true; element('practice-link').hidden = true;
     joinButton.hidden = false; element('room-home').hidden = false;
     setTranslatedText(element('room-title'), 'privateGame');
     setTranslatedText(document.querySelector('.room-description')!, 'joinDescription');
     if (/^[A-Za-z0-9_-]{24}$/.test(roomId)) void join(); else { joinButton.hidden = true; showError('errorGone'); }
   } else if (startSolo) {
+    joinCodeForm.hidden = true;
     lobby.hidden = true; feedback.textContent = t('connecting');
     setTranslatedText(element('mode-label'), 'singleplayer');
     void request('/api/rooms', { mode: 'free', quota: 8, players: 1, play: 'race' })

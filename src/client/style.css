@@ -251,6 +251,19 @@ h2 { margin: 0; font-size: inherit; font-weight: 600; }
 .round-clock { margin-left: auto; font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .round-heading:has(#round-title[hidden]) .round-clock { margin-inline: auto; }
 .invite-row { display: flex; gap: 8px; }
+.invite-row > button { flex-shrink: 0; }
+.join-by-code { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 24px; }
+#join-code { text-transform: uppercase; }
+#join-code-feedback:empty { display: none; }
+#join-code-feedback { color: var(--error-text); }
+.room-code-row { margin-bottom: 16px; }
+#room-code { font-weight: 600; letter-spacing: .08em; }
+.room-scoreboard { margin-block: 20px; }
+.room-scoreboard h3 { font-size: .875rem; font-weight: 600; margin: 0 0 12px; }
+.room-scores { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
+.room-scores li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 8px; border-bottom: 1px solid var(--line); }
+.score-name { min-width: 0; overflow-wrap: anywhere; font-size: .875rem; }
+.score-wins { flex-shrink: 0; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 1.25rem; }
 .invite-row input { min-width: 0; width: 100%; padding: 12px; border: 1px solid var(--field-border); border-radius: 6px; color: var(--ink); background: var(--field); font-size: 1rem; }
 .secondary-button { min-height: 48px; border: 1px solid var(--field-border); padding: 10px 16px; border-radius: 6px; color: var(--ink); background: var(--field); font-weight: 600; }
 .secondary-button:hover:not(:disabled) { background: var(--secondary-hover); }
