@@ -82,6 +82,7 @@
         <section class="globe-panel" aria-label="Interactive world globe" data-i18n-aria="globe">
           <div id="globe-host" class="globe-host"><p class="loading-globe" data-i18n="loading">Loading the world…</p></div>
           <div class="globe-toolbar">
+            <div id="game-map-views" class="map-views" role="group" aria-label="Map view" data-i18n-aria="mapView" hidden><button type="button" data-map-view="globe" aria-pressed="true" data-i18n="globeView">Globe</button><button type="button" data-map-view="flat" aria-pressed="false" data-i18n="flatView">Flat map</button></div>
             <div class="globe-controls">
               <span class="pointer-help" aria-hidden="true"><svg viewBox="0 0 24 32" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="2" width="16" height="27" rx="8" /><path d="M12 2v9" /></svg></span>
               <p id="globe-help" class="globe-help" data-i18n="help">Rotate and zoom</p>
@@ -106,11 +107,11 @@
             <p class="room-rule" data-i18n="indexDescription">Your world, one discovery at a time.</p>
           </section>
           <section id="country-index" class="country-index" aria-labelledby="index-title" hidden>
-            <div class="section-heading"><h2 id="index-title" data-i18n="countryIndex">Country index</h2><span id="index-count">0 / 195</span></div>
-            <div class="index-views" role="group" aria-label="Map view" data-i18n-aria="mapView"><button id="index-globe" type="button" aria-pressed="true" data-i18n="globeView">Globe</button><button id="index-flat" type="button" aria-pressed="false" data-i18n="flatView">Flat map</button></div>
+            <div class="section-heading"><h2 id="index-title" data-i18n="countryIndex">Country index</h2><span id="index-count" aria-live="polite" aria-atomic="true">0 / 195</span></div>
+            <div class="index-views" role="group" aria-label="Map view" data-i18n-aria="mapView"><button id="index-globe" type="button" data-map-view="globe" aria-pressed="true" data-i18n="globeView">Globe</button><button id="index-flat" type="button" data-map-view="flat" aria-pressed="false" data-i18n="flatView">Flat map</button></div>
             <progress id="index-progress" value="0" max="195" aria-label="Countries found" data-i18n-aria="foundCountries"></progress>
             <p id="storage-note" class="room-rule" data-i18n="localProgress">Saved in this browser.</p>
-            <div class="index-tools"><div><label for="index-search" data-i18n="searchIndex">Search countries</label><input id="index-search" type="search" maxlength="80" /></div><div><label for="index-filter" data-i18n="indexFilter">Show countries</label><select id="index-filter"><option value="all" data-i18n="allCountries">All countries</option><option value="found" data-i18n="foundCountries">Found countries</option><option value="missing" data-i18n="missingCountries">Still to find</option></select></div></div>
+            <div class="index-tools"><div class="index-search-field"><label for="index-search" data-i18n="searchIndex">Search countries</label><input id="index-search" type="search" maxlength="80" /></div><div><label for="index-filter" data-i18n="indexFilter">Show countries</label><select id="index-filter"><option value="all" data-i18n="allCountries">All countries</option><option value="found" data-i18n="foundCountries">Found countries</option><option value="missing" data-i18n="missingCountries">Still to find</option></select></div><div><label for="index-region" data-i18n="continent">Continent</label><select id="index-region"><option value="all" data-i18n="allRegions">All continents</option><option value="africa" data-i18n="africa">Africa</option><option value="asia" data-i18n="asia">Asia</option><option value="europe" data-i18n="europe">Europe</option><option value="northAmerica" data-i18n="northAmerica">North America</option><option value="southAmerica" data-i18n="southAmerica">South America</option><option value="oceania" data-i18n="oceania">Oceania</option></select></div></div>
             <p id="index-empty" class="room-rule" hidden></p><ul id="index-countries" class="index-countries"></ul>
             <a href="/?play=solo" class="secondary-button index-play" data-i18n="singleplayer">Singleplayer</a>
           </section>
