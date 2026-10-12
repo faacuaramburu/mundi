@@ -93,7 +93,7 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
   function render(): void {
     feedback.className = 'feedback';
     if (!snapshot) {
-      feedback.textContent = error ? t(error) : '';
+      feedback.textContent = error ? t(error) : roomId && !stopped ? t('reconnecting') : '';
       feedback.classList.toggle('error', !!error);
       if (error === 'errorGone' || error === 'errorFull') joinButton.hidden = true;
       return;
@@ -190,6 +190,9 @@ export function startMultiplayer(atlas: Atlas, globe: Globe, collection: Collect
       const message = JSON.parse(String(event.data)) as ServerMessage;
       if (message.type === 'error') {
         pending = false; window.clearTimeout(pendingTimer);
+        // A stale socket can survive a reload or network interruption until the heartbeat expires.
+        // Keep the seat reserved and retry rather than treating it as a permanent rejection.
+        if (message.error === 'ALREADY_CONNECTED' && attempts < 8) { error = null; render(); return; }
         if (['ROOM_GONE', 'UNAUTHORIZED', 'ALREADY_CONNECTED', 'RATE_LIMIT'].includes(message.error)) stopped = true;
         showError(errorMessage(message.error)); return;
       }
