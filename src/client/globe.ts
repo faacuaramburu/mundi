@@ -53,6 +53,7 @@ export class Globe {
   private labelWidth = 0;
   private labelHeight = 0;
   private flat = false;
+  private viewListeners = new Set<() => void>();
   private hoveredCountry: Country | null = null;
   private pointer = new Vector2();
   private pointerInside = false;
@@ -303,7 +304,8 @@ export class Globe {
   };
 
   private layoutFlatMap(): void {
-    const width = Math.max(1, Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight - 120) * this.atlas.width / this.atlas.height));
+    // The host already excludes the toolbar; use its full space on small screens.
+    const width = Math.max(1, Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight) * this.atlas.width / this.atlas.height));
     const height = width * this.atlas.height / this.atlas.width;
     this.flatPan.x = Math.max(-width * (this.flatZoom - 1) / 2, Math.min(width * (this.flatZoom - 1) / 2, this.flatPan.x));
     this.flatPan.y = Math.max(-height * (this.flatZoom - 1) / 2, Math.min(height * (this.flatZoom - 1) / 2, this.flatPan.y));
@@ -338,11 +340,11 @@ export class Globe {
       const mapY = view.y + (1 - this.pointer.y) / 2 * view.height;
       const countryUnderPointer = this.countryAt(mapX / this.atlas.width * 360 - 180,
         90 - mapY / this.atlas.height * 180);
-      if (countryUnderPointer && this.collectedIds.has(countryUnderPointer.id)) this.hoveredCountry = countryUnderPointer;
+      if (countryUnderPointer) this.hoveredCountry = countryUnderPointer;
       if (this.hoveredCountry) return;
       const rect = this.map.getBoundingClientRect();
       for (const country of this.atlas.countries) {
-        if (!this.collectedIds.has(country.id) || !this.mapMarkers.has(country.id)) continue;
+        if (!(this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id)) || !this.mapMarkers.has(country.id)) continue;
         const x = ((country.focus[0] + 180) / 360 * this.atlas.width - view.x) / view.width * 2 - 1;
         const y = 1 - ((90 - country.focus[1]) / 180 * this.atlas.height - view.y) / view.height * 2;
         if (Math.hypot((x - this.pointer.x) * rect.width / 2,
@@ -378,11 +380,14 @@ export class Globe {
     event.preventDefault();
     this.disposeRenderer();
     this.flat = true;
+    this.onPointerLeave();
+    setTranslatedAria(this.map, 'map');
     this.flatViewport.append(this.map);
     this.host.replaceChildren(this.flatViewport, this.label);
     this.layoutFlatMap();
     const help = document.querySelector('#globe-help');
     if (help) setTranslatedText(help, 'lost');
+    for (const listener of this.viewListeners) listener();
   };
 
   private drawMap(): void {
@@ -480,7 +485,13 @@ export class Globe {
     this.dirty = true;
   }
 
+  get isFlatMap(): boolean { return this.flat; }
+  get hasGlobe(): boolean { return this.renderer !== null; }
+  onMapViewChange(listener: () => void): void { this.viewListeners.add(listener); }
+
   setFlatMap(flat: boolean): void {
+    flat = flat || !this.renderer;
+    const country = this.labeledCountry;
     this.stopFocus();
     this.flat = flat;
     this.onPointerLeave();
@@ -497,8 +508,10 @@ export class Globe {
       this.flatViewport.remove();
     }
     setTranslatedText(document.querySelector('#globe-help')!, flat ? 'mapHelp' : 'help');
+    if (country) this.focusCountry(country);
     this.dirty = true;
     this.updateLabel();
+    for (const listener of this.viewListeners) listener();
   }
 
   showCollection(ids: ReadonlySet<string>): void {
@@ -602,6 +615,7 @@ export class Globe {
   }
 
   dispose(): void {
+    this.viewListeners.clear();
     cancelAnimationFrame(this.frame);
     this.resizeObserver.disconnect();
     this.disposeRenderer();

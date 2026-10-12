@@ -86,9 +86,14 @@ input { caret-color: var(--ink); }
 .globe-host .flat-map { position: absolute; left: 50%; top: 50%; max-width: none; max-height: none; overflow: hidden; touch-action: none; }
 .globe-host .flat-map:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 .globe-host :is(.globe-canvas, .flat-map)[data-pointer-focus]:focus { outline: none; }
-.index-views { display: flex; gap: 8px; margin-bottom: 16px; }
-.index-views button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--field-border); background: var(--field); color: var(--ink); font-size: var(--meta-size); }
-.index-views button[aria-pressed="true"] { background: var(--primary); color: var(--primary-ink); }
+:is(.index-views, .map-views) { display: flex; gap: 8px; }
+.index-views { margin-bottom: 16px; }
+:is(.index-views, .map-views) button { min-height: 44px; padding: 8px 14px; border: 1px solid var(--field-border); background: var(--field); color: var(--ink); font-size: var(--meta-size); }
+:is(.index-views, .map-views) button[aria-pressed="true"] { background: var(--primary); color: var(--primary-ink); }
+:is(.index-views, .map-views) button:not([aria-pressed="true"]):hover { background: var(--secondary-hover); }
+:is(.index-views, .map-views) button:disabled { opacity: .5; cursor: not-allowed; }
+.globe-toolbar:has(.map-views:not([hidden])) { flex-direction: column; gap: 4px; }
+.globe-panel:has(.map-views:not([hidden])) .globe-host { bottom: 128px; }
 .country-label { position: absolute; inset: 0 auto auto 0; z-index: 1; max-width: min(240px, calc(100% - 16px)); padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: var(--meta-size); pointer-events: none; }
 .history-order { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 4px 8px; background: transparent; border: 0; color: var(--muted); font-size: var(--meta-size); }
 .history-order[aria-pressed="true"] { color: var(--ink); background: var(--option-active); }
@@ -301,6 +306,7 @@ select:disabled { opacity: .5; }
 .country-index #index-progress { margin-top: 8px; }
 .country-index #storage-note { margin: 8px 0 12px; }
 .index-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.index-search-field { grid-column: 1 / -1; }
 .index-tools label { margin: 0 0 4px; font-size: .875rem; }
 .index-tools input, .index-tools select { min-height: 44px; padding: 8px; font-size: .875rem; }
 .index-country { min-height: 44px; padding-block: 8px; }

@@ -2,6 +2,7 @@ import atlasUrl from '../../data/atlas.json?url';
 import { initializeLanguage, setTranslatedText } from './i18n.js';
 import { turnBrandOrbit } from './brand-motion.js';
 import { Globe } from './globe.js';
+import { initializeMapView } from './map-view.js';
 import type { Atlas } from '../shared/countries.js';
 import { createCollection, showIndex } from './collection.js';
 import { initializeTheme } from './theme.js';
@@ -58,6 +59,9 @@ async function initializeGame(): Promise<Globe> {
   if (!host) throw new Error('Globe host unavailable');
   const globe = new Globe(host, atlas);
   document.querySelector('#reset-view')?.addEventListener('click', () => globe.resetView());
+  if (!isHome && !(params.get('view') === 'index' && !params.has('room'))) {
+    initializeMapView(globe, document.querySelector<HTMLElement>('#game-map-views')!, 'mundi-game-view');
+  }
 
   const collection = createCollection(atlas);
   document.querySelector('#home-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;

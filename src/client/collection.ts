@@ -1,5 +1,6 @@
 import type { Atlas } from '../shared/countries.js';
-import { normalizeName } from '../shared/countries.js';
+import { countryRegion, filterIndexCountries } from '../shared/regions.js';
+import { initializeMapView } from './map-view.js';
 import { parseCollection } from '../shared/collection.js';
 import type { Globe } from './globe.js';
 import { countryName, onLanguageChange, setTranslatedText, t } from './i18n.js';
@@ -45,35 +46,23 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
   const panel = document.querySelector<HTMLElement>('#country-index')!;
   const query = document.querySelector<HTMLInputElement>('#index-search')!;
   const filter = document.querySelector<HTMLSelectElement>('#index-filter')!;
+  const region = document.querySelector<HTMLSelectElement>('#index-region')!;
   const list = document.querySelector<HTMLElement>('#index-countries')!;
-  const globeButton = document.querySelector<HTMLButtonElement>('#index-globe')!;
-  const flatButton = document.querySelector<HTMLButtonElement>('#index-flat')!;
-  function chooseView(flat: boolean): void {
-    globe.setFlatMap(flat);
-    globeButton.setAttribute('aria-pressed', String(!flat));
-    flatButton.setAttribute('aria-pressed', String(flat));
-    try { localStorage.setItem('mundi-index-view', flat ? 'flat' : 'globe'); }
-    catch { /* The current view remains available without storage. */ }
-  }
-  globeButton.addEventListener('click', () => chooseView(false));
-  flatButton.addEventListener('click', () => chooseView(true));
-  let flat = false;
-  try { flat = localStorage.getItem('mundi-index-view') === 'flat'; }
-  catch { /* The index defaults to the globe without storage. */ }
-  chooseView(flat);
+  initializeMapView(globe, document.querySelector<HTMLElement>('.index-views')!, 'mundi-index-view');
   panel.hidden = false;
   document.querySelector('.game-panel')!.classList.add('index-panel');
   document.querySelector<HTMLElement>('#feedback')!.hidden = true;
   document.querySelector<HTMLElement>('.legend')!.hidden = true;
   setTranslatedText(document.querySelector('#mode-label')!, 'countryIndex');
   function render(): void {
-    globe.showCollection(collection.ids);
-    document.querySelector('#index-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;
-    document.querySelector('#index-progress')!.setAttribute('value', String(collection.ids.size));
+    const regionalCountries = atlas.countries.filter(country => region.value === 'all' || countryRegion(country.id) === region.value);
+    const regionalIds = new Set(regionalCountries.filter(country => collection.ids.has(country.id)).map(country => country.id));
+    globe.showCollection(regionalIds);
+    document.querySelector('#index-count')!.textContent = `${regionalIds.size} / ${regionalCountries.length}`;
+    document.querySelector('#index-progress')!.setAttribute('max', String(regionalCountries.length));
+    document.querySelector('#index-progress')!.setAttribute('value', String(regionalIds.size));
     setTranslatedText(document.querySelector('#storage-note')!, collection.canSave ? 'localProgress' : 'storageUnavailable');
-    const normalized = normalizeName(query.value);
-    const visible = atlas.countries.filter(country => (!normalized || [country.name, country.nameEs, country.id].some(name => normalizeName(name).includes(normalized)))
-      && (filter.value === 'all' || collection.ids.has(country.id) === (filter.value === 'found')))
+    const visible = filterIndexCountries(atlas.countries, collection.ids, { query: query.value, status: filter.value, region: region.value })
       .sort((a, b) => countryName(a).localeCompare(countryName(b)));
     list.replaceChildren();
     for (const country of visible) {
@@ -90,5 +79,6 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
     document.querySelector<HTMLElement>('#index-empty')!.hidden = visible.length > 0;
   }
   query.addEventListener('input', render); filter.addEventListener('change', render);
+  region.addEventListener('change', render);
   onLanguageChange(render); collection.subscribe(render); render();
 }
