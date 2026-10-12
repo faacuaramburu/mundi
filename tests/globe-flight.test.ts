@@ -3,6 +3,23 @@ import { Vector3 } from 'three';
 import { GlobeFlight } from '../src/client/globe-flight.js';
 
 describe('country focus flight', () => {
+  it('rotates and approaches a continent without jumping, including when interrupted', () => {
+    const position = new Vector3(0, 0, 3.35);
+    const target = new Vector3(.1, 0, 0);
+    const flight = new GlobeFlight(position, new Vector3(1, 0, 0), target, 100, false, 2.3);
+    flight.update(position, target, 100);
+    expect(position.distanceTo(new Vector3(0, 0, 3.35))).toBeLessThan(.000001);
+    flight.update(position, target, 100 + flight.duration / 2);
+    expect(position.length()).toBeCloseTo((3.35 + 2.3) / 2, 10);
+    const current = position.clone();
+    const replacement = new GlobeFlight(position, new Vector3(-1, 0, 0), target, 500, false, 3);
+    replacement.update(position, target, 500);
+    expect(position.distanceTo(current)).toBeLessThan(.000001);
+    replacement.update(position, target, 500 + replacement.duration);
+    expect(position.distanceTo(new Vector3(-3, 0, 0))).toBeLessThan(.000001);
+    expect(target.length()).toBe(0);
+  });
+
   it('travels around the surface even between opposite sides, retaining deep zoom', () => {
     const position = new Vector3(1.25, 0, 0);
     const target = new Vector3();

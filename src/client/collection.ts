@@ -79,6 +79,7 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
     document.querySelector<HTMLElement>('#index-empty')!.hidden = visible.length > 0;
   }
   query.addEventListener('input', render); filter.addEventListener('change', render);
-  region.addEventListener('change', render);
+  region.addEventListener('change', () => { render(); globe.focusRegion(region.value); });
+  globe.onMapViewChange(() => { if (region.value !== 'all') globe.focusRegion(region.value); });
   onLanguageChange(render); collection.subscribe(render); render();
 }
