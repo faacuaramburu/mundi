@@ -66,7 +66,7 @@ export class Rooms {
     const id = randomBytes(18).toString('base64url');
     let code: string | null = null;
     if (count > 1) {
-      do { code = [...randomBytes(roomCodeLength)].map(byte => roomCodeAlphabet[byte % roomCodeAlphabet.length]).join(''); }
+      do { code = Array.from({ length: roomCodeLength }, () => roomCodeAlphabet.charAt(randomInt(roomCodeAlphabet.length))).join(''); }
       while ([...this.rooms.values()].some(room => room.code === code));
     }
     this.rooms.set(id, { id, code, rules: { ...rules, players: count, play: rules.play ?? 'race' }, players: Array.from({ length: count }, (_, index) => index === 0 ? newPlayer(credential, name) : null), phase: 'waiting', round: 1,
