@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import type { Action, Band, ErrorCode, Guess, Phase, PlayerGuess, Progress, Reason, Rules, Seat, Snapshot } from '../shared/multiplayer.js';
 import { normalizePlayerName } from '../shared/profile.js';
+import { normalizeRoomCode, roomCodeAlphabet, roomCodeLength } from '../shared/room-code.js';
 
 export interface Geography {
   ids: string[];
@@ -8,11 +9,11 @@ export interface Geography {
 }
 interface Accepted extends Guess { order: number }
 interface Player {
-  credential: string; name: string; connected: boolean; ready: boolean; rematch: boolean;
+  credential: string; name: string; wins: number; connected: boolean; ready: boolean; rematch: boolean;
   guesses: Accepted[]; rate: { since: number; count: number };
 }
 interface Room {
-  id: string; rules: Rules; players: (Player | null)[]; phase: Phase; round: number;
+  id: string; code: string | null; rules: Rules; players: (Player | null)[]; phase: Phase; round: number;
   target: string | null; previousTarget: string | null; startsAt: number | null;
   endsAt: number | null; idleEndsAt: number | null; expiresAt: number; order: number;
   result: { winner: Seat | null; reason: Reason } | null;
@@ -22,7 +23,7 @@ export class RoomError extends Error {
   constructor(public readonly code: ErrorCode, public readonly status = 409) { super(code); }
 }
 export const hashCredential = (token: string): string => createHash('sha256').update(token).digest('hex');
-const newPlayer = (credential: string, name: string): Player => ({ credential, name, connected: false, ready: false, rematch: false, guesses: [], rate: { since: 0, count: 0 } });
+const newPlayer = (credential: string, name: string): Player => ({ credential, name, wins: 0, connected: false, ready: false, rematch: false, guesses: [], rate: { since: 0, count: 0 } });
 function playerName(value: string): string {
   const name = normalizePlayerName(value);
   if (name === null) throw new RoomError('INVALID_REQUEST', 400);
@@ -63,7 +64,12 @@ export class Rooms {
       throw new RoomError('CAPACITY', 429);
     }
     const id = randomBytes(18).toString('base64url');
-    this.rooms.set(id, { id, rules: { ...rules, players: count, play: rules.play ?? 'race' }, players: Array.from({ length: count }, (_, index) => index === 0 ? newPlayer(credential, name) : null), phase: 'waiting', round: 1,
+    let code: string | null = null;
+    if (count > 1) {
+      do { code = [...randomBytes(roomCodeLength)].map(byte => roomCodeAlphabet[byte % roomCodeAlphabet.length]).join(''); }
+      while ([...this.rooms.values()].some(room => room.code === code));
+    }
+    this.rooms.set(id, { id, code, rules: { ...rules, players: count, play: rules.play ?? 'race' }, players: Array.from({ length: count }, (_, index) => index === 0 ? newPlayer(credential, name) : null), phase: 'waiting', round: 1,
       target: null, previousTarget: null, startsAt: null, endsAt: null, idleEndsAt: null,
       expiresAt: this.now() + 30 * 60_000, order: 0, result: null, turn: null, turnEndsAt: null });
     return id;
@@ -77,6 +83,14 @@ export class Rooms {
     const rooms = [...this.rooms.values()].reverse();
     return rooms.find(room => room.players.length > 1 && room.expiresAt > this.now()
       && room.players.some(player => player?.credential === credential))?.id ?? null;
+  }
+  joinCode(value: string, credential: string, displayName?: string): string {
+    const code = normalizeRoomCode(value);
+    if (!code) throw new RoomError('INVALID_REQUEST', 400);
+    const room = [...this.rooms.values()].find(room => room.code === code && room.expiresAt > this.now());
+    if (!room) throw new RoomError('ROOM_GONE', 404);
+    this.join(room.id, credential, displayName);
+    return room.id;
   }
   join(id: string, credential: string, displayName?: string): Seat {
     const name = displayName === undefined ? undefined : playerName(displayName);
@@ -183,6 +197,7 @@ export class Rooms {
     this.finish(room, 'quota');
   }
   private finish(room: Room, reason: Reason, correctWinner?: Seat): void {
+    if (room.phase === 'finished') return;
     let winner: Seat | null = correctWinner ?? null;
     if (correctWinner === undefined && room.rules.play !== 'turns' && room.players.length > 1) {
       const ranked = room.players.flatMap((player, seat) => {
@@ -192,6 +207,7 @@ export class Rooms {
       winner = ranked.length ? ranked[0]!.seat as Seat : null;
     }
     room.phase = 'finished'; room.previousTarget = room.target; room.result = { winner, reason };
+    if (winner !== null) room.players.at(winner)!.wins++;
     room.turn = null; room.turnEndsAt = null;
     room.expiresAt = this.now() + 10 * 60_000;
   }
@@ -222,7 +238,7 @@ export class Rooms {
     this.advance(room);
     const player = room.players.at(seat);
     if (!player) throw new RoomError('UNAUTHORIZED', 401);
-    const progress = (other: Player): Progress => ({ name: other.name, connected: other.connected, ready: other.ready, rematch: other.rematch,
+    const progress = (other: Player): Progress => ({ name: other.name, wins: other.wins, connected: other.connected, ready: other.ready, rematch: other.rematch,
       count: other.guesses.length, remaining: room.rules.mode === 'free' ? null : room.rules.quota - other.guesses.length,
       bestBand: best(other)?.band ?? null });
     const opponent = room.players.at(seat === 0 ? 1 : 0);
@@ -230,7 +246,7 @@ export class Rooms {
       ? room.players.flatMap((other, playerSeat) => other?.guesses.map(guess => ({ guess, seat: playerSeat as Seat })) ?? [])
         .sort((a, b) => a.guess.order - b.guess.order).map(({ guess, seat }) => publicGuess(guess, seat))
       : player.guesses.map(guess => publicGuess(guess, seat));
-    return { type: 'snapshot', roomId: room.id, seat, round: room.round, phase: room.phase, rules: { ...room.rules },
+    return { type: 'snapshot', roomId: room.id, roomCode: room.code, seat, round: room.round, phase: room.phase, rules: { ...room.rules },
       serverNow: this.now(), startsAt: room.startsAt, endsAt: room.endsAt, idleEndsAt: room.idleEndsAt,
       expiresAt: room.expiresAt, you: progress(player), opponent: opponent ? progress(opponent) : null,
       players: room.players.map(other => other ? progress(other) : null), turn: room.turn, turnEndsAt: room.turnEndsAt,

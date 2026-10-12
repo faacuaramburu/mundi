@@ -120,6 +120,11 @@
             <h2 id="room-title" data-i18n="playFriend">Play a friend</h2>
             <p class="room-description" data-i18n="inviteDescription">Create a private room and share the link. Both players guess the same country.</p>
             <div data-player-profile></div>
+            <form id="join-by-code" class="join-by-code">
+              <label for="join-code" data-i18n="joinCode">Join with a room code</label>
+              <div class="invite-row"><input id="join-code" type="text" placeholder="ABCD-EFGH" minlength="8" maxlength="17" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-describedby="join-code-feedback" required /><button id="join-code-button" type="submit" class="secondary-button" data-i18n="joinRoom">Join room</button></div>
+              <p id="join-code-feedback" class="room-rule error" role="status"></p>
+            </form>
             <form id="create-room">
               <label for="room-players" data-i18n="playerCount">Players</label><select id="room-players"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
               <label for="room-play" data-i18n="playStyle">How to play</label><select id="room-play"><option value="race" data-i18n="raceMode">Race</option><option value="turns" data-i18n="turnsMode">Take turns</option></select>
@@ -140,9 +145,12 @@
             <p id="room-rules" class="room-rule"></p>
             <div id="session-profile" data-player-profile></div>
             <div id="invite-area">
+              <label for="room-code" data-i18n="roomCode">Room code</label>
+              <div class="invite-row room-code-row"><input id="room-code" type="text" readonly /><button id="copy-code" type="button" class="secondary-button" data-i18n="copyLink" data-i18n-aria="copyCode">Copy</button></div>
               <label for="invite-link" data-i18n="inviteLink">Invitation link</label>
               <div class="invite-row"><input id="invite-link" type="text" readonly /><button id="copy-invite" type="button" class="secondary-button" data-i18n="copyLink">Copy</button></div>
             </div>
+            <section id="room-scoreboard" class="room-scoreboard" aria-labelledby="scoreboard-title" hidden><h3 id="scoreboard-title" data-i18n="roundsWon">Rounds won</h3><ol id="room-scores" class="room-scores" aria-live="polite" aria-atomic="true"></ol></section>
             <div class="player-lines"><p id="you-progress"></p><p id="opponent-progress"></p></div>
             <p id="turn-status" class="turn-status" role="status"></p>
             <p id="idle-clock" class="room-rule"></p>
