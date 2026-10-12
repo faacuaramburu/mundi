@@ -1,6 +1,6 @@
 import { Quaternion, Vector3 } from 'three';
 
-/** A time-based arc around the globe, with a constant camera radius. */
+/** A time-based arc around the globe, optionally adjusting the camera radius. */
 export class GlobeFlight {
   readonly duration: number;
   private from: Vector3;
@@ -10,10 +10,11 @@ export class GlobeFlight {
   private step = new Quaternion();
   private radius: number;
 
-  constructor(from: Vector3, destination: Vector3, target: Vector3, private startedAt: number, reduced: boolean) {
+  constructor(from: Vector3, destination: Vector3, target: Vector3, private startedAt: number, reduced: boolean,
+    private destinationRadius = from.length()) {
     this.from = from.clone();
     this.radius = from.length();
-    this.destination = destination.clone().setLength(this.radius);
+    this.destination = destination.clone().setLength(this.destinationRadius);
     this.targetFrom = target.clone();
     const angle = from.angleTo(destination);
     this.rotation = new Quaternion().setFromUnitVectors(from.clone().normalize(), destination.clone().normalize());
@@ -24,7 +25,7 @@ export class GlobeFlight {
     const progress = Math.max(0, Math.min(1, (now - this.startedAt) / this.duration));
     const eased = progress * progress * (3 - 2 * progress);
     this.step.identity().slerp(this.rotation, eased);
-    position.copy(this.from).applyQuaternion(this.step).setLength(this.radius);
+    position.copy(this.from).applyQuaternion(this.step).setLength(this.radius + (this.destinationRadius - this.radius) * eased);
     target.copy(this.targetFrom).multiplyScalar(1 - eased);
     if (progress === 1) position.copy(this.destination);
     return progress === 1;

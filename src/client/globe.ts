@@ -12,6 +12,9 @@ import type { Atlas, Country } from '../shared/countries.js';
 import { GlobeFlight } from './globe-flight.js';
 import { prefersReducedMotion } from './motion.js';
 import { atlasBorders, GlobeSurface } from './globe-surface.js';
+import { regionView, wrapMapX } from './region-view.js';
+
+let mapNumber = 0;
 
 const tinyCountries = new Set([
   'VAT', 'MCO', 'SMR', 'LIE', 'AND', 'MLT', 'SGP', 'BHR',
@@ -29,6 +32,7 @@ function position([longitude, latitude]: [number, number]): Vector3 {
 export class Globe {
   private atlas: Atlas;
   private map = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  private mapShapes = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   private mapCountries = new Map<string, SVGPathElement>();
   private mapMarkers = new Map<string, SVGCircleElement>();
   private context: CanvasRenderingContext2D;
@@ -80,13 +84,22 @@ export class Globe {
     this.map.setAttribute('tabindex', '0');
     this.map.setAttribute('stroke-width', '.5');
     this.map.style.background = '#174f7b';
+    this.mapShapes.id = `mundi-map-${++mapNumber}`;
+    this.map.append(this.mapShapes);
+    // Adjacent copies keep Pacific islands together when the view crosses the date line.
+    for (const offset of [-atlas.width, atlas.width]) {
+      const copy = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      copy.setAttribute('href', `#${this.mapShapes.id}`);
+      copy.setAttribute('transform', `translate(${offset} 0)`);
+      this.map.append(copy);
+    }
     for (const item of [...atlas.context, ...atlas.countries]) {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', item.path);
       path.setAttribute('fill', 'id' in item ? '#667273' : '#515b65');
       path.setAttribute('stroke', '#b2bac2');
       path.setAttribute('vector-effect', 'non-scaling-stroke');
-      this.map.append(path);
+      this.mapShapes.append(path);
       if ('id' in item && typeof item.id === 'string') this.mapCountries.set(item.id, path);
     }
     const context = document.createElement('canvas').getContext('2d');
@@ -165,7 +178,7 @@ export class Globe {
       marker.setAttribute('r', '2');
       marker.setAttribute('fill', '#667273');
       marker.setAttribute('stroke', 'none');
-      this.map.append(marker);
+      this.mapShapes.append(marker);
       // Markers share their country's color without enlarging its geographic shape.
       this.mapMarkers.set(country.id, marker);
     }
@@ -307,7 +320,7 @@ export class Globe {
     // The host already excludes the toolbar; use its full space on small screens.
     const width = Math.max(1, Math.min(this.host.clientWidth, Math.max(1, this.host.clientHeight) * this.atlas.width / this.atlas.height));
     const height = width * this.atlas.height / this.atlas.width;
-    this.flatPan.x = Math.max(-width * (this.flatZoom - 1) / 2, Math.min(width * (this.flatZoom - 1) / 2, this.flatPan.x));
+    this.flatPan.x = this.flatZoom === 1 ? 0 : wrapMapX(this.flatPan.x, width * this.flatZoom, 0);
     this.flatPan.y = Math.max(-height * (this.flatZoom - 1) / 2, Math.min(height * (this.flatZoom - 1) / 2, this.flatPan.y));
     this.map.style.width = `${width}px`;
     this.map.style.height = `${height}px`;
@@ -323,7 +336,7 @@ export class Globe {
   }
 
   private countryAt(longitude: number, latitude: number): Country | null {
-    const x = (longitude + 180) / 360 * this.atlas.width;
+    const x = wrapMapX((longitude + 180) / 360 * this.atlas.width, this.atlas.width);
     const y = (90 - latitude) / 180 * this.atlas.height;
     return this.atlas.countries.find(country => (this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id))
       && this.context.isPointInPath(this.paths.get(country.id)!, x, y)) ?? null;
@@ -345,7 +358,8 @@ export class Globe {
       const rect = this.map.getBoundingClientRect();
       for (const country of this.atlas.countries) {
         if (!(this.collectionMode ? this.collectedIds.has(country.id) : this.colors.has(country.id)) || !this.mapMarkers.has(country.id)) continue;
-        const x = ((country.focus[0] + 180) / 360 * this.atlas.width - view.x) / view.width * 2 - 1;
+        const mapX = wrapMapX((country.focus[0] + 180) / 360 * this.atlas.width, this.atlas.width, view.x + view.width / 2);
+        const x = (mapX - view.x) / view.width * 2 - 1;
         const y = 1 - ((90 - country.focus[1]) / 180 * this.atlas.height - view.y) / view.height * 2;
         if (Math.hypot((x - this.pointer.x) * rect.width / 2,
           (y - this.pointer.y) * rect.height / 2) <= 8) {
@@ -457,7 +471,7 @@ export class Globe {
     this.dirty = true;
   }
 
-  focusCountry(country: Country): void {
+  private flyTo(coordinates: [number, number], radius = this.camera.position.length()): void {
     if (this.controls && !this.flat) {
       const from = this.camera.position.clone();
       const target = this.controls.target.clone();
@@ -470,9 +484,33 @@ export class Globe {
       this.camera.position.copy(from);
       this.camera.quaternion.copy(orientation);
       this.controls.target.copy(target);
-      this.flight = new GlobeFlight(from, position(country.focus), target, performance.now(),
-        prefersReducedMotion());
+      this.flight = new GlobeFlight(from, position(coordinates), target, performance.now(),
+        prefersReducedMotion(), radius);
     }
+  }
+
+  focusRegion(region: string): void {
+    const view = regionView(region);
+    if (!view) { this.resetView(); return; }
+    this.hoveredCountry = null; this.labeledCountry = null; this.label.hidden = true;
+    if (this.flat) {
+      this.flatZoom = Math.max(1, Math.min(8, 360 / (view.span[0] * 1.08), 180 / (view.span[1] * 1.08)));
+      this.layoutFlatMap();
+      this.flatPan.set(-view.center[0] / 360 * this.map.clientWidth * this.flatZoom,
+        view.center[1] / 180 * this.map.clientHeight * this.flatZoom);
+      this.layoutFlatMap();
+    } else {
+      const vertical = this.camera.fov * Math.PI / 360;
+      const halfAngle = Math.min(vertical, Math.atan(Math.tan(vertical) * this.camera.aspect));
+      const angle = view.radius * Math.PI / 180;
+      const distance = Math.max(this.minimumDistance, (Math.cos(angle) + Math.sin(angle) / Math.tan(halfAngle)) * 1.06);
+      this.flyTo(view.center, distance);
+    }
+    this.dirty = true;
+  }
+
+  focusCountry(country: Country): void {
+    this.flyTo(country.focus);
     this.labeledCountry = country;
     this.labelPosition.copy(position(country.focus).multiplyScalar(1.016));
     this.labelExpiresAt = performance.now() + 6000;
@@ -586,7 +624,8 @@ export class Globe {
     const x = this.hoveredCountry
       ? mapRect.left - hostRect.left + (this.pointer.x + 1) / 2 * mapRect.width
       : this.flat
-      ? mapRect.left - hostRect.left + ((country.focus[0] + 180) / 360 * this.atlas.width - view.x) / view.width * mapRect.width
+      ? mapRect.left - hostRect.left + (wrapMapX((country.focus[0] + 180) / 360 * this.atlas.width,
+        this.atlas.width, view.x + view.width / 2) - view.x) / view.width * mapRect.width
       : (projected.x + 1) * this.host.clientWidth / 2;
     const y = this.hoveredCountry
       ? mapRect.top - hostRect.top + (1 - this.pointer.y) / 2 * mapRect.height
