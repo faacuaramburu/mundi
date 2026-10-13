@@ -312,6 +312,8 @@ select:disabled { opacity: .5; }
 .index-country span { flex: 1; overflow-wrap: anywhere; }
 .index-country small { color: var(--muted); font-size: .75rem; }
 .index-country.found small { color: var(--success-text); font-weight: 600; }
+.index-country small { text-align: right; }
+.index-country .discovery-date { display: block; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
 .index-play { display: block; text-align: center; text-decoration: none; }
 .game-panel.index-panel { padding-block: 20px; }
 .country-index { font-size: 1rem; }

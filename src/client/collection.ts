@@ -3,7 +3,7 @@ import { countryRegion, filterIndexCountries } from '../shared/regions.js';
 import { initializeMapView } from './map-view.js';
 import { parseCollection } from '../shared/collection.js';
 import type { Globe } from './globe.js';
-import { countryName, onLanguageChange, setTranslatedText, t } from './i18n.js';
+import { countryName, getLanguage, onLanguageChange, setTranslatedText, t } from './i18n.js';
 import { countryFlag } from './flags.js';
 
 const key = 'mundi-collection-v1';
@@ -102,6 +102,17 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
       const found = collection.ids.has(country.id); button.classList.toggle('found', found);
       const name = document.createElement('span'); name.textContent = countryName(country);
       const status = document.createElement('small'); status.textContent = t(found ? 'collected' : 'notCollected');
+      if (found) {
+        const addedAt = collection.addedAt(country.id);
+        const date = document.createElement(addedAt === undefined ? 'span' : 'time'); date.className = 'discovery-date';
+        if (addedAt === undefined) date.textContent = t('indexDateUnknown');
+        else {
+          date.setAttribute('datetime', new Date(addedAt).toISOString());
+          date.textContent = new Intl.DateTimeFormat(getLanguage(), { day: 'numeric', month: 'short', year: 'numeric' }).format(addedAt);
+          date.setAttribute('aria-label', `${t('indexDiscoveredOn')} ${date.textContent}`);
+        }
+        status.append(date);
+      }
       button.append(countryFlag(country), name, status);
       button.addEventListener('click', () => { globe.focusCountry(country); });
       entry.append(button); list.append(entry);
