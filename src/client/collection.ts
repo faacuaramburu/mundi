@@ -45,7 +45,7 @@ export function createCollection(atlas: Atlas) {
       mergeSaved();
       const isNew = !ids.has(id);
       ids.add(id);
-      if (isNew) dates.set(id, Date.now());
+      if (!dates.has(id)) dates.set(id, Date.now());
       try {
         localStorage.setItem(key, JSON.stringify([...ids]));
         localStorage.setItem(datesKey, JSON.stringify([...dates]));

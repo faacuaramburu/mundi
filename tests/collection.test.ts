@@ -17,12 +17,15 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('collection discovery dates', () => {
-  it('preserves legacy discoveries without inventing dates', () => {
+  it('dates legacy discoveries only when won again and preserves that date afterward', () => {
     saved.set(key, JSON.stringify(['ARG']));
     const collection = createCollection(atlas);
     expect([...collection.ids]).toEqual(['ARG']); expect(collection.addedAt('ARG')).toBeUndefined();
-    collection.add('ARG'); expect(collection.addedAt('ARG')).toBeUndefined();
+    expect(collection.add('ARG')).toBe(false); expect(collection.addedAt('ARG')).toBe(1000);
     collection.add('BRA'); expect(collection.addedAt('BRA')).toBe(1000);
+    vi.mocked(Date.now).mockReturnValue(2000);
+    collection.add('ARG');
+    expect(createCollection(atlas).addedAt('ARG')).toBe(1000);
   });
   it('persists the first discovery date across repeated wins and reloads', () => {
     const collection = createCollection(atlas); collection.add('ARG');
