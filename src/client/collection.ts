@@ -1,5 +1,6 @@
 import type { Atlas } from '../shared/countries.js';
 import { countryRegion, filterIndexCountries } from '../shared/regions.js';
+import type { Region } from '../shared/regions.js';
 import { initializeMapView } from './map-view.js';
 import { parseCollection } from '../shared/collection.js';
 import type { Globe } from './globe.js';
@@ -79,6 +80,11 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
   setTranslatedText(document.querySelector('#mode-label')!, 'countryIndex');
   function render(): void {
     document.querySelector<HTMLElement>('#index-date-note')!.hidden = order.value === 'name';
+    for (const option of region.options) {
+      const countries = atlas.countries.filter(country => option.value === 'all' || countryRegion(country.id) === option.value);
+      const found = countries.filter(country => collection.ids.has(country.id)).length;
+      option.textContent = `${t(option.value === 'all' ? 'allRegions' : option.value as Region)} ${found}/${countries.length}`;
+    }
     const regionalCountries = atlas.countries.filter(country => region.value === 'all' || countryRegion(country.id) === region.value);
     const regionalIds = new Set(regionalCountries.filter(country => collection.ids.has(country.id)).map(country => country.id));
     globe.showCollection(regionalIds);
