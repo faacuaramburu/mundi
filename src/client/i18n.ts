@@ -2,13 +2,13 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
-  seoTitle: ['Mundi | Globle-style Online Multiplayer Game', 'Mundi | Geografía multijugador online, estilo Globle'],
-  seoDescription: ['Play Mundi, a free Globle-style country guessing game. Explore the globe solo or play online multiplayer with 2 to 4 friends. No account needed.', 'Mundi es un juego gratuito de geografía al estilo Globle. Adivina países en el globo, juega solo o en multijugador online con 2 a 4 amigos. Sin cuenta.'],
+  seoTitle: ['Mundi | Online Multiplayer Geography Game', 'Mundi | Geografía multijugador online'],
+  seoDescription: ['Play Mundi, a free country guessing game. Explore the globe solo or play online multiplayer with 2 to 4 friends. No account needed.', 'Mundi es un juego gratuito de geografía. Adivina países en el globo, juega solo o en multijugador online con 2 a 4 amigos. Sin cuenta.'],
   homeDescription: ['Guess the country. Play solo or online with friends.', 'Un juego de geografía para jugar solo o con amigos.'],
   faq: ['FAQ', 'Preguntas frecuentes'],
   faqTitle: ['Countries and distances', 'Países y distancias'],
-  faqMultiplayerQuestion: ['Is Mundi a multiplayer alternative to Globle?', '¿Mundi es una alternativa multijugador a Globle?'],
-  faqMultiplayerAnswer: ['Mundi is an independent Globle-style geography game. Guess the mystery country using distance clues on a globe, play solo or create an online multiplayer room for 2 to 4 friends. Race to find the country or take turns with shared clues. No account is required. Mundi is not affiliated with Globle.', 'Mundi es un juego de geografía independiente, al estilo Globle. El objetivo es adivinar un país secreto mediante pistas de distancia en el globo. Se puede jugar solo o crear una sala multijugador online para 2 a 4 amigos, competir por encontrar el país o alternar turnos con pistas compartidas. No requiere una cuenta. Mundi no está afiliado a Globle.'],
+  faqMultiplayerQuestion: ['Can I play Mundi with friends?', '¿Puedo jugar Mundi con amigos?'],
+  faqMultiplayerAnswer: ['Mundi is a geography guessing game. Guess the mystery country using distance clues on a globe, play solo or create an online multiplayer room for 2 to 4 friends. Race to find the country or take turns with shared clues. No account is required.', 'Mundi es un juego de geografía. El objetivo es adivinar un país secreto mediante pistas de distancia en el globo. Se puede jugar solo o crear una sala multijugador online para 2 a 4 amigos, competir por encontrar el país o alternar turnos con pistas compartidas. No requiere una cuenta.'],
   faqRosterQuestion: ['Which countries can be the answer?', '¿Qué países pueden ser la respuesta?'],
   faqRosterAnswer: ['Mundi has a fixed list of 195 countries: the 193 UN member states, plus Palestine and the Holy See, shown as Vatican City. These are the same countries you can guess and collect in your index.', 'Mundi utiliza una lista fija de 195 países: los 193 Estados miembros de la ONU, más Palestina y la Santa Sede, representada como Ciudad del Vaticano. Todos pueden aparecer como país secreto, introducirse como respuesta y añadirse al índice al acertar.'],
   faqTerritoriesQuestion: ['Which countries and territories are not included?', '¿Qué países y territorios no están incluidos?'],
