@@ -30,7 +30,7 @@ export function formatDistance(distance: number, language: 'en' | 'es' = 'en'): 
 export function getHint(distance: number, correct: boolean, border: boolean): Hint {
   if (!Number.isFinite(distance) || distance < 0) throw new Error('Invalid distance');
   if (correct) return { label: 'Correct country', color: '#419b72', correct: true, border: false };
-  if (border) return { label: 'Shares a border', color: '#2457c5', correct: false, border: true };
+  if (border) return { label: 'Shares a border', color: '#a47be5', correct: false, border: true };
   const bands = [
     { limit: 500, label: 'Very hot', color: '#9d2537' },
     { limit: 1500, label: 'Hot', color: '#d54e44' },

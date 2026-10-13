@@ -111,7 +111,7 @@ input { caret-color: var(--ink); }
 .legend { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 20px; flex-shrink: 0; margin-top: 28px; color: var(--muted); font-size: var(--meta-size); }
 .legend-proximity, .legend-border { display: flex; align-items: center; gap: 14px; }
 .legend-border { gap: 8px; }
-.legend-border i { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; background: #2457c5; }
+.legend-border i { width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%; background: #a47be5; }
 .legend-colors { display: flex; gap: 9px; }
 .legend-colors i { width: 20px; height: 20px; border-radius: 50%; background: #f1e5c8; }
 .legend-colors i:nth-child(2) { background: #e8c66c; }
