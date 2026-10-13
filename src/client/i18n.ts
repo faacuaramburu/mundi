@@ -2,6 +2,11 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  indexOrder: ['Sort countries', 'Ordenar países'],
+  indexAlphabetical: ['Alphabetical', 'Alfabéticamente'],
+  indexNewest: ['Recently added first', 'Más recientes primero'],
+  indexOldest: ['Oldest added first', 'Más antiguos primero'],
+  indexDateNote: ['Countries without a recorded discovery date appear last.', 'Los países sin fecha de descubrimiento registrada aparecen al final.'],
   seoTitle: ['Mundi | Online Multiplayer Geography Game', 'Mundi | Geografía multijugador online'],
   seoDescription: ['Play Mundi, a free country guessing game. Explore the globe solo or play online multiplayer with 2 to 4 friends. No account needed.', 'Mundi es un juego gratuito de geografía. Adivina países en el globo, juega solo o en multijugador online con 2 a 4 amigos. Sin cuenta.'],
   homeDescription: ['Guess the country. Play solo or online with friends.', 'Un juego de geografía para jugar solo o con amigos.'],

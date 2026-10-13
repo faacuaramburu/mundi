@@ -319,7 +319,7 @@ select:disabled { opacity: .5; }
 .country-index #index-progress { margin-top: 8px; }
 .country-index #storage-note { margin: 8px 0 12px; }
 .index-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
-.index-search-field { grid-column: 1 / -1; }
+.index-search-field { min-width: 0; }
 .index-tools label { margin: 0 0 4px; font-size: .875rem; }
 .index-tools input, .index-tools select { min-height: 44px; padding: 8px; font-size: .875rem; }
 .index-country { min-height: 44px; padding-block: 8px; }
