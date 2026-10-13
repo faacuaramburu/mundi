@@ -36,6 +36,8 @@ describe('geographic data and proximity', () => {
     expect(byId.get('ARG')!.neighbors).toContain('URY');
     expect(distance('ARG', 'URY')).toBe(0);
     expect(getHint(0, false, true)).toMatchObject({ label: 'Shares a border', correct: false, border: true });
+    expect(getHint(0, false, true).color).not.toBe(getHint(50, false, false).color);
+    expect(getHint(0, false, true).color).not.toBe(getHint(0, true, false).color);
     expect(getHint(0, true, false)).toMatchObject({ label: 'Correct country', correct: true });
   });
 
