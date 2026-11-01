@@ -43,7 +43,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     try {
       const value = JSON.parse(env.FIREBASE_WEB_CONFIG) as Partial<FirebaseWebConfig>;
       if (typeof value.projectId !== 'string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(value.projectId)
-        || value.authDomain !== `${value.projectId}.firebaseapp.com`
+        || (value.authDomain !== `${value.projectId}.firebaseapp.com` && !(url.protocol === 'https:' && value.authDomain === url.hostname))
         || typeof value.apiKey !== 'string' || !/^[A-Za-z0-9_-]{20,100}$/.test(value.apiKey)
         || typeof value.appId !== 'string' || !/^1:\d+:web:[a-f0-9]+$/.test(value.appId)) throw new Error();
       firebase = { apiKey: value.apiKey, authDomain: value.authDomain, projectId: value.projectId, appId: value.appId };
@@ -51,4 +51,3 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return { environment: environment as Config['environment'], host, port, origin, ...(firebase ? { firebase } : {}) };
 }
-

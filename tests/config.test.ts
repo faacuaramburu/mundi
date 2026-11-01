@@ -7,6 +7,8 @@ describe('configuration', () => {
     expect(loadConfig({ FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, privateKey: 'must-not-leak' }) }).firebase).toEqual(firebase);
     expect(() => loadConfig({ FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, authDomain: 'attacker.example' }) })).toThrow('FIREBASE_WEB_CONFIG');
     expect(() => loadConfig({ FIREBASE_WEB_CONFIG: '{invalid' })).toThrow('FIREBASE_WEB_CONFIG');
+    expect(loadConfig({ APP_ORIGIN: 'https://mundi.top', FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, authDomain: 'mundi.top' }) }).firebase?.authDomain).toBe('mundi.top');
+    expect(() => loadConfig({ APP_ORIGIN: 'https://mundi.top', FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, authDomain: 'mundi.top.attacker.example' }) })).toThrow('FIREBASE_WEB_CONFIG');
   });
   it('defaults to local-only development', () => {
     expect(loadConfig({})).toEqual({
@@ -48,4 +50,3 @@ describe('configuration', () => {
     expect(() => loadConfig({ APP_ORIGIN: 'http://example.com' })).toThrow('HTTPS');
   });
 });
-

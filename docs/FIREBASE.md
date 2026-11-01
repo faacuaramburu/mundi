@@ -7,7 +7,13 @@ Mundi uses Firebase Authentication (Google) and Cloud Firestore. Gameplay remain
 1. Register a Firebase web app and enable Google in Authentication. Select the project support email.
 2. Add `mundi.top` and any actual preview host to Authentication's authorized domains.
 3. Create a Standard Firestore database and publish `firestore.rules` and `firestore.indexes.json` with `firebase deploy --only firestore --project PROJECT_ID`.
-4. Set `FIREBASE_WEB_CONFIG` on the application service to a JSON object with only `apiKey`, `authDomain`, `projectId`, and `appId`. The auth domain must be `PROJECT_ID.firebaseapp.com`. Redeploy the application.
+4. Set `FIREBASE_WEB_CONFIG` on the application service to a JSON object with only `apiKey`, `authDomain`, `projectId`, and `appId`. The auth domain may be `PROJECT_ID.firebaseapp.com` or the HTTPS application hostname. Redeploy the application.
+
+### Show mundi.top during Google sign-in
+
+The server transparently proxies the reserved `/__/auth/` helper resources to the configured Firebase project. This keeps the game on Render and does not require changing DNS or moving hosting. Only these helpers permit same-origin framing and their Firebase bootstrap scripts; the game's browser policy remains strict.
+
+Before setting `authDomain` to `mundi.top`, add `https://mundi.top/__/auth/handler` to the existing Google OAuth web client's authorized redirect URIs in Google Cloud Console. Keep the Firebase redirect URI for fallback. `mundi.top` must also remain in Firebase Authentication's authorized domains. Change only `authDomain`; preserve the project, app ID and API key so existing accounts and progress keep working.
 
 The web API key is public app configuration. Do not put service-account credentials, OAuth client secrets, or Firebase CLI credentials in this setting, the browser, or the repository. No Admin SDK key is needed by the game server.
 
@@ -25,4 +31,3 @@ Progress imported from a guest browser is self-reported. This data is suitable f
 ## Verification
 
 `npm test`, `npm run lint`, `npm run build`, and `npm run check:client-build` validate the application. Use the Firebase Auth and Firestore emulators for account switching, guest migration, offline retry, device merging, and owner-only security-rule tests. Never connect an emulator test to a production database.
-

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type { Config } from './config.js';
 import { registerMultiplayer } from './multiplayer.js';
 import type { Rooms } from './rooms.js';
+import { registerFirebaseAuth } from './firebase-auth.js';
 
 export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
   const production = config.environment === 'production';
@@ -69,6 +70,7 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
   });
 
   app.register(async (scope) => {
+    await registerFirebaseAuth(scope, config);
     scope.get('/api/account/config', { schema: { querystring: { type: 'object', properties: {}, additionalProperties: false } } }, async () =>
       config.firebase ? { enabled: true, firebase: config.firebase } : { enabled: false });
     scope.addHook('onRequest', async (request, reply) => {
@@ -115,4 +117,3 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
 
   return app;
 }
-
