@@ -31,6 +31,8 @@ Email registration requires at least 8 password characters and sends an email ve
 
 Choose a unique username with 3–24 characters and at least three letters. Names start with a letter, allow a–z, numbers and underscores, and are saved in lowercase. The profile icon opens your account; this is the single place to edit a signed-in username. Guest display names remain optional on the home and multiplayer screens.
 
+Public [Terms](https://mundi.top/terms.html), [Privacy](https://mundi.top/privacy.html), and [Contact](https://mundi.top/contact.html) pages are available in English and Spanish. Email registration requires an unchecked Terms acceptance box. Google and existing accounts accept the current version before account progress is imported or synced. Firestore records the version and server timestamp in a private immutable agreement document. Guest play remains available without creating an account; accepting the Terms does not authorize personalized advertising.
+
 Firebase project owners can see accounts in Authentication and usernames in Firestore under `players/{uid}`. See [Firebase setup and data model](docs/FIREBASE.md) for configuration and access rules.
 
 The live site uses Cloudflare Web Analytics for aggregate traffic and performance statistics.

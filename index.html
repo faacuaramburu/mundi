@@ -75,11 +75,24 @@
               </div>
               <p id="account-password-hint" class="profile-note" data-i18n="passwordHint" hidden>At least 8 characters. A longer passphrase is better.</p>
             </div>
+            <div id="account-signup-legal" class="account-legal" hidden>
+              <label class="legal-checkbox"><input id="account-signup-agree" name="terms" type="checkbox" /><span><span data-i18n="legalAccept">I accept the</span> <a href="/terms.html" target="_blank" rel="noopener" data-i18n="legalTerms">Terms</a>.</span></label>
+              <p><span data-i18n="legalPrivacyNotice">Read how we use your account data in our</span> <a href="/privacy.html" target="_blank" rel="noopener" data-i18n="legalPrivacy">Privacy policy</a>.</p>
+            </div>
             <button id="account-email-submit" class="guess-button" type="submit" data-i18n="accountLogin">Sign in</button>
           </form>
           <button id="account-forgot-password" class="text-link" type="button" data-i18n="passwordForgot">Forgot password?</button>
           <p class="account-auth-switch"><span id="account-email-switch-hint" data-i18n="emailNewAccount">New to Mundi?</span> <button id="account-email-switch" class="text-link" type="button" data-i18n="emailCreate">Create account</button></p>
         </div>
+        <section id="account-agreement" class="account-legal" hidden>
+          <p id="account-agreement-note" role="status" aria-live="polite"></p>
+          <form id="account-agreement-form">
+            <label class="legal-checkbox"><input id="account-agreement-check" type="checkbox" required /><span><span data-i18n="legalAccept">I accept the</span> <a href="/terms.html" target="_blank" rel="noopener" data-i18n="legalTerms">Terms</a>.</span></label>
+            <p><span data-i18n="legalPrivacyNotice">Read how we use your account data in our</span> <a href="/privacy.html" target="_blank" rel="noopener" data-i18n="legalPrivacy">Privacy policy</a>.</p>
+            <button id="account-agreement-submit" class="guess-button" type="submit" data-i18n="legalContinue">Accept and continue</button>
+          </form>
+          <button id="account-agreement-retry" class="text-link" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
+        </section>
         <div id="account-username-profile" data-player-profile hidden></div>
         <button id="account-cancel-username" class="text-link" type="button" data-i18n="usernameCancel" hidden>Cancel</button>
         <div class="account-actions">
@@ -242,7 +255,7 @@
           <div id="practice-actions" class="practice-actions" hidden><button id="new-round" data-i18n="newRound" type="button" class="new-round-button">New round</button></div>
         </section>
       </main>
-      <footer class="globe-footer"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a><span id="server-status" class="server-status" data-i18n="connecting" role="status">Connecting…</span></footer>
+      <footer class="globe-footer"><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a><nav class="legal-links" aria-label="Legal"><a href="/privacy.html" data-i18n="legalPrivacy">Privacy policy</a><a href="/terms.html" data-i18n="legalTerms">Terms</a><a href="/contact.html" data-i18n="legalContact">Contact</a></nav><span id="server-status" class="server-status" data-i18n="connecting" role="status">Connecting…</span></footer>
     </div>
   </body>
 </html>

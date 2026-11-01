@@ -27,6 +27,8 @@ Signed-in Google users can request **Create or change password**. Completing the
 
 ## Progress and access
 
+- Before importing guest progress or syncing an account, the client checks `players/{uid}/agreements/{version}`. Email sign-up requires an explicit unchecked checkbox; Google and existing accounts without the current agreement see an acceptance form. The agreement contains only `version` and `acceptedAt` (server timestamp). Rules allow the owner to create only the current version, reject updates/deletes and other fields, and block account data writes before acceptance. Keep `src/shared/legal.ts`, the public legal pages and the rule version aligned when publishing new Terms. Retain published versions in repository history.
+
 - Signed-in players choose a unique username: 3–24 characters, at least three ASCII letters, starting with a letter, with numbers and underscores allowed. Names are normalized to lowercase. A transaction claims `usernames/{username}` together with the owner's profile; rules reject duplicate claims, orphan reservations and cross-account changes. Renaming releases the previous reservation atomically. Guests can still choose a local display name.
 
 - Existing guest discoveries, their known dates, daily histories, and the chosen game nickname are merged into the signed-in account. Guest data is consumed only after a durable local copy succeeds.
@@ -39,5 +41,7 @@ Signed-in Google users can request **Create or change password**. Completing the
 Progress imported from a guest browser is self-reported. This data is suitable for personal progress, not a trusted competitive leaderboard. Daily target selection and guess evaluation remain on the Mundi server.
 
 ## Verification
+
+For verified deletion requests, use the Firebase project administrator account: verify ownership, recursively delete the player's Firestore document and all subcollections (including progress, daily histories and agreements), release its `usernames/{username}` reservation, and delete the matching Authentication user. Deleting only the Authentication user does not remove Firestore data. Advise the player to clear site data on their devices to remove local caches. Handle these requests privately through the project contact channel; never put account details in a public issue.
 
 `npm test`, `npm run lint`, `npm run build`, and `npm run check:client-build` validate the application. Use the Firebase Auth and Firestore emulators for account switching, guest migration, offline retry, device merging, and owner-only security-rule tests. Never connect an emulator test to a production database.

@@ -15,6 +15,7 @@ import { normalizeUsername } from '../shared/username.js';
 import { setAccountIdentity, setUsernameSaver } from './account-identity.js';
 import { claimUsername } from './username-account.js';
 import { initializeEmailAuth } from './email-auth.js';
+import { initializeLegalAgreement } from './legal-agreement.js';
 
 export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet<string>): void {
   const app = initializeApp(config); const auth = getAuth(app); const db = getFirestore(app);
@@ -27,7 +28,15 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   let pendingAuth = false; let timer = 0; let running: number | null = null; let watching = false;
   const dirty = new Set<string>(); let subscriptions: Unsubscribe[] = [];
   const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
-  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); });
+  let activated = false;
+  const agreement = initializeLegalAgreement(db, uid => {
+    if (user?.uid !== uid || activated) return;
+    activated = true;
+    try { importGuestProgress(uid, ids); }
+    catch { /* The guest copy remains intact if durable migration is unavailable. */ }
+    setProgressOwner(uid); status = 'accountSyncing'; render(); dirty.add('all'); void flush();
+  });
+  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); }, uid => agreement.record(uid));
   setUsernameSaver(async value => {
     const uid = user?.uid; const version = generation;
     if (!uid || progressOwner() !== uid) return 'unavailable';
@@ -51,6 +60,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     document.querySelector<HTMLButtonElement>('#account-guest')!.hidden = !!user;
     document.querySelector('#storage-note')?.setAttribute('data-i18n', user ? 'accountLocalAndCloud' : 'localProgress');
     emailUI.render(user, pendingAuth);
+    if (user && !activated) document.querySelector<HTMLElement>('#account-status')!.hidden = true;
   }
   button.addEventListener('click', () => dialog.showModal());
   document.querySelector('#account-close')!.addEventListener('click', () => dialog.close());
@@ -201,13 +211,11 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     void signOut(auth).catch(() => { status = 'accountLoginError'; }).finally(() => { pendingAuth = false; render(); });
   });
   onAuthStateChanged(auth, next => {
-    generation++; clearTimeout(timer); for (const stop of subscriptions) stop(); subscriptions = []; watching = false; dirty.clear();
+    generation++; activated = false; clearTimeout(timer); for (const stop of subscriptions) stop(); subscriptions = []; watching = false; dirty.clear();
     user = next;
     setAccountIdentity(next?.uid ?? null, null, false);
-    if (!next) { setProgressOwner(null); status = 'accountGuestHint'; render(); return; }
-    try { importGuestProgress(next.uid, ids); }
-    catch { /* The guest copy remains intact if durable migration is unavailable. */ }
-    setProgressOwner(next.uid); status = 'accountSyncing'; render(); dirty.add('all'); void flush();
+    setProgressOwner(null);
+    status = next ? 'legalAccountNotice' : 'accountGuestHint'; render(); agreement.check(next?.uid ?? null);
   }, () => { status = 'accountLoginError'; render(); });
   onLanguageChange(render); render();
 }

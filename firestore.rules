@@ -2,6 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function owns(uid) { return request.auth != null && request.auth.uid == uid; }
+    function accepted(uid) {
+      return owns(uid) && exists(/databases/$(database)/documents/players/$(uid)/agreements/2026-11-01);
+    }
     function validUsername(name) {
       return name is string && name.size() <= 24 && name.matches('^[a-z][a-z0-9_]{2,23}$')
         && name.matches('.*[a-z].*[a-z].*[a-z].*');
@@ -18,7 +21,7 @@ service cloud.firestore {
     }
     match /players/{uid} {
       allow read: if owns(uid);
-      allow create, update: if owns(uid)
+      allow create, update: if accepted(uid)
         && request.resource.data.keys().hasAll(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
         && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt', 'username'])
         && usernameMatches(uid)
@@ -29,7 +32,7 @@ service cloud.firestore {
         && request.resource.data.lastSeenAt == request.time;
       match /progress/collection {
         allow read: if owns(uid);
-        allow create, update: if owns(uid)
+        allow create, update: if accepted(uid)
           && request.resource.data.keys().hasAll(['discoveries', 'updatedAt'])
           && request.resource.data.keys().hasOnly(['discoveries', 'updatedAt'])
           && request.resource.data.discoveries is map && request.resource.data.discoveries.size() <= 195
@@ -37,7 +40,7 @@ service cloud.firestore {
       }
       match /daily/{day} {
         allow read: if owns(uid);
-        allow create, update: if owns(uid) && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        allow create, update: if accepted(uid) && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
           && request.resource.data.keys().hasAll(['day', 'guesses', 'targetId', 'won', 'updatedAt'])
           && request.resource.data.keys().hasOnly(['day', 'guesses', 'targetId', 'won', 'updatedAt'])
           && request.resource.data.day == day
@@ -47,10 +50,17 @@ service cloud.firestore {
             || (request.resource.data.targetId is string && request.resource.data.targetId.matches('^[A-Z]{3}$')))
           && request.resource.data.updatedAt == request.time;
       }
+      match /agreements/{version} {
+        allow read: if owns(uid);
+        allow create: if owns(uid) && version == '2026-11-01'
+          && request.resource.data.keys().hasAll(['version', 'acceptedAt'])
+          && request.resource.data.keys().hasOnly(['version', 'acceptedAt'])
+          && request.resource.data.version == version && request.resource.data.acceptedAt == request.time;
+      }
     }
     match /usernames/{username} {
       allow get: if request.auth != null;
-      allow create: if request.auth != null && validUsername(username)
+      allow create: if request.auth != null && accepted(request.auth.uid) && validUsername(username)
         && request.resource.data.keys().hasAll(['uid', 'createdAt'])
         && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
         && request.resource.data.uid == request.auth.uid && request.resource.data.createdAt == request.time

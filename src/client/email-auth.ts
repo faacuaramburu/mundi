@@ -4,7 +4,7 @@ import { getLanguage, t } from './i18n.js';
 import type { Message } from './i18n.js';
 
 /** Firebase owns credentials; passwords stay only in the current form/request. */
-export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => void): { render: (user: User | null, pending: boolean) => void } {
+export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => void, registered: (uid: string) => Promise<void>): { render: (user: User | null, pending: boolean) => void } {
   const find = <T extends HTMLElement>(id: string) => document.querySelector<T>(`#${id}`)!;
   const panel = find('account-email-panel');
   const form = find<HTMLFormElement>('account-email-form');
@@ -16,6 +16,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
   const show = find<HTMLButtonElement>('account-password-show');
   const manage = find<HTMLButtonElement>('account-password-reset');
   const feedback = find('account-email-feedback');
+  const agreement = find<HTMLInputElement>('account-signup-agree');
   let mode: 'signin' | 'signup' | 'reset' = 'signin';
   let user: User | null = null; let pending = false;
   let message: Message | null = null; let error = false;
@@ -24,6 +25,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     if (next?.uid !== user?.uid) { password.value = ''; password.type = 'password'; mode = 'signin'; message = null; }
     user = next; pending = busy;
     panel.hidden = !!user;
+    find('account-status').hidden = !user && mode !== 'signin';
     find('account-method-separator').hidden = !!user;
     manage.hidden = !user?.email; manage.disabled = pending;
     find('account-password-field').hidden = mode === 'reset';
@@ -31,6 +33,8 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     password.minLength = mode === 'signup' ? 8 : 0;
     password.autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
     find('account-password-hint').hidden = mode !== 'signup';
+    find('account-signup-legal').hidden = mode !== 'signup';
+    agreement.required = mode === 'signup' && !user; agreement.disabled = pending || mode !== 'signup' || !!user;
     show.textContent = t(password.type === 'password' ? 'passwordShow' : 'passwordHide');
     show.setAttribute('aria-pressed', String(password.type === 'text'));
     for (const control of [email, submit, change, forgot, show]) control.disabled = pending;
@@ -75,8 +79,11 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     void run(async () => {
       if (action === 'reset') { await reset(address); return; }
       if (action === 'signup') {
+        if (!agreement.checked) { notice('legalRequired', true); return; }
         const result = await createUserWithEmailAndPassword(auth, address, value);
         password.value = '';
+        try { await registered(result.user.uid); }
+        catch { notice('legalSaveError', true); return; }
         try { await sendEmailVerification(result.user); notice('emailVerificationSent'); }
         catch { notice('emailCreated'); }
       } else { await signInWithEmailAndPassword(auth, address, value); password.value = ''; }
@@ -84,12 +91,12 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
   });
   function switchMode(next: typeof mode): void {
     if (pending) return;
-    mode = next; message = null; password.value = ''; password.type = 'password'; render(user, pending); email.focus();
+    mode = next; message = null; agreement.checked = false; password.value = ''; password.type = 'password'; render(user, pending); email.focus();
   }
   change.addEventListener('click', () => switchMode(mode === 'signin' ? 'signup' : 'signin'));
   forgot.addEventListener('click', () => switchMode('reset'));
   show.addEventListener('click', () => { password.type = password.type === 'password' ? 'text' : 'password'; render(user, pending); });
   manage.addEventListener('click', () => { if (user?.email) { const address = user.email; void run(() => reset(address)); } });
-  find<HTMLDialogElement>('account-dialog').addEventListener('close', () => { password.value = ''; password.type = 'password'; message = null; render(user, pending); });
+  find<HTMLDialogElement>('account-dialog').addEventListener('close', () => { agreement.checked = false; password.value = ''; password.type = 'password'; message = null; render(user, pending); });
   return { render };
 }

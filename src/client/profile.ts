@@ -72,7 +72,7 @@ export function initializeProfile(): void {
     input.addEventListener('input', () => { input.removeAttribute('aria-invalid'); field.message = 'profileHint'; render(); });
   });
   function render(): void {
-    const account = !!progressOwner(); const identity = getAccountIdentity();
+    const identity = getAccountIdentity(); const account = !!identity.uid;
     if (previousOwner !== progressOwner()) { editing = false; previousOwner = progressOwner(); }
     document.querySelector<HTMLElement>('#account-profile-overview')!.hidden = !account || !identity.username;
     document.querySelector('#account-username')!.textContent = identity.username ? `@${identity.username}` : '';
