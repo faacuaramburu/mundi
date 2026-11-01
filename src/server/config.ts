@@ -1,8 +1,11 @@
+import type { FirebaseWebConfig } from '../shared/account.js';
+
 export interface Config {
   environment: 'development' | 'test' | 'production';
   host: string;
   port: number;
   origin: string;
+  firebase?: FirebaseWebConfig;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -35,5 +38,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const host = env.HOST ?? (environment === 'production' ? '0.0.0.0' : '127.0.0.1');
   if (!['127.0.0.1', '0.0.0.0', '::1', '::'].includes(host)) throw new Error('Invalid HOST');
 
-  return { environment: environment as Config['environment'], host, port, origin };
+  let firebase: FirebaseWebConfig | undefined;
+  if (env.FIREBASE_WEB_CONFIG) {
+    try {
+      const value = JSON.parse(env.FIREBASE_WEB_CONFIG) as Partial<FirebaseWebConfig>;
+      if (typeof value.projectId !== 'string' || !/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(value.projectId)
+        || value.authDomain !== `${value.projectId}.firebaseapp.com`
+        || typeof value.apiKey !== 'string' || !/^[A-Za-z0-9_-]{20,100}$/.test(value.apiKey)
+        || typeof value.appId !== 'string' || !/^1:\d+:web:[a-f0-9]+$/.test(value.appId)) throw new Error();
+      firebase = { apiKey: value.apiKey, authDomain: value.authDomain, projectId: value.projectId, appId: value.appId };
+    } catch { throw new Error('Invalid FIREBASE_WEB_CONFIG'); }
+  }
+  return { environment: environment as Config['environment'], host, port, origin, ...(firebase ? { firebase } : {}) };
 }
+

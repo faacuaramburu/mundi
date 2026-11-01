@@ -1,10 +1,11 @@
 import { normalizePlayerName, playerNameLimit } from '../shared/profile.js';
 import { onLanguageChange, t } from './i18n.js';
 import type { Message } from './i18n.js';
+import { progressGet, progressSet, progressOwner } from './progress-storage.js';
 
 const key = 'mundi-player-name';
 let name = '';
-try { name = normalizePlayerName(localStorage.getItem(key) ?? '') ?? ''; }
+try { name = normalizePlayerName(progressGet(key) ?? '') ?? ''; }
 catch { /* A name remains optional when browser storage is unavailable. */ }
 const listeners = new Set<() => void>();
 export function getPlayerName(): string { return name; }
@@ -36,7 +37,7 @@ export function initializeProfile(): void {
       }
       name = next;
       let saved = true;
-      try { localStorage.setItem(key, name); } catch { saved = false; }
+      try { progressSet(key, name); progressSet('mundi-player-name-updated-at', String(Date.now())); } catch { saved = false; }
       for (const other of fields) {
         other.input.value = name; other.input.removeAttribute('aria-invalid');
         other.message = saved ? (name ? 'profileSaved' : 'profileGuest') : 'profileTemporary';
@@ -48,17 +49,24 @@ export function initializeProfile(): void {
   function render(): void {
     for (const field of fields) {
       field.label.textContent = t('profileName'); field.button.textContent = t('profileSave');
-      field.input.placeholder = t('profilePlaceholder'); field.note.textContent = t(field.message);
+      field.input.placeholder = t('profilePlaceholder'); field.note.textContent = t(field.message === 'profileHint' && progressOwner() ? 'accountProfileHint' : field.message);
       field.note.classList.toggle('error', field.message === 'profileInvalid');
     }
   }
   const unsubscribe = onLanguageChange(render);
   const storage = (event: StorageEvent) => {
     if (event.key !== key && event.key !== null) return;
-    name = normalizePlayerName(event.newValue ?? '') ?? '';
+    name = normalizePlayerName(progressGet(key) ?? '') ?? '';
     for (const field of fields) { field.input.value = name; field.message = 'profileHint'; field.input.removeAttribute('aria-invalid'); }
     render(); for (const listener of listeners) listener();
   };
+  const restored = () => {
+    name = normalizePlayerName(progressGet(key) ?? '') ?? '';
+    for (const field of fields) { field.input.value = name; field.message = 'profileHint'; field.input.removeAttribute('aria-invalid'); }
+    render(); for (const listener of listeners) listener();
+  };
+  window.addEventListener('mundi-progress-restored', restored);
   window.addEventListener('storage', storage); render();
-  if (import.meta.hot) import.meta.hot.dispose(() => { unsubscribe(); window.removeEventListener('storage', storage); });
+  if (import.meta.hot) import.meta.hot.dispose(() => { unsubscribe(); window.removeEventListener('storage', storage); window.removeEventListener('mundi-progress-restored', restored); });
 }
+

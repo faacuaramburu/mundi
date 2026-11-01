@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(uid) { return request.auth != null && request.auth.uid == uid; }
+    match /players/{uid} {
+      allow read: if owns(uid);
+      allow create, update: if owns(uid)
+        && request.resource.data.keys().hasAll(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
+        && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 24
+        && request.resource.data.nameUpdatedAt is number && request.resource.data.nameUpdatedAt >= 0
+        && request.resource.data.nameUpdatedAt <= request.time.toMillis() + 60000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.lastSeenAt == request.time;
+      match /progress/collection {
+        allow read: if owns(uid);
+        allow create, update: if owns(uid)
+          && request.resource.data.keys().hasAll(['discoveries', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['discoveries', 'updatedAt'])
+          && request.resource.data.discoveries is map && request.resource.data.discoveries.size() <= 195
+          && request.resource.data.updatedAt == request.time;
+      }
+      match /daily/{day} {
+        allow read: if owns(uid);
+        allow create, update: if owns(uid) && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.keys().hasAll(['day', 'guesses', 'targetId', 'won', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['day', 'guesses', 'targetId', 'won', 'updatedAt'])
+          && request.resource.data.day == day
+          && request.resource.data.guesses is list && request.resource.data.guesses.size() <= 195
+          && request.resource.data.won is bool
+          && (request.resource.data.targetId == null
+            || (request.resource.data.targetId is string && request.resource.data.targetId.matches('^[A-Z]{3}$')))
+          && request.resource.data.updatedAt == request.time;
+      }
+    }
+    // No public player directory, global reads, or client-side administration.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
+

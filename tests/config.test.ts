@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/server/config.js';
 
 describe('configuration', () => {
+  it('accepts only the public Firebase web fields and the matching auth domain', () => {
+    const firebase = { apiKey: 'public_test_api_key_1234567890', authDomain: 'mundi-test.firebaseapp.com', projectId: 'mundi-test', appId: '1:123456:web:abc123' };
+    expect(loadConfig({ FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, privateKey: 'must-not-leak' }) }).firebase).toEqual(firebase);
+    expect(() => loadConfig({ FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, authDomain: 'attacker.example' }) })).toThrow('FIREBASE_WEB_CONFIG');
+    expect(() => loadConfig({ FIREBASE_WEB_CONFIG: '{invalid' })).toThrow('FIREBASE_WEB_CONFIG');
+  });
   it('defaults to local-only development', () => {
     expect(loadConfig({})).toEqual({
       environment: 'development', host: '127.0.0.1', port: 3000, origin: 'http://127.0.0.1:5173',
@@ -42,3 +48,4 @@ describe('configuration', () => {
     expect(() => loadConfig({ APP_ORIGIN: 'http://example.com' })).toThrow('HTTPS');
   });
 });
+

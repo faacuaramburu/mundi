@@ -19,6 +19,22 @@ afterEach(async () => {
 });
 
 describe('HTTP foundation', () => {
+  it('exposes only public account configuration and scopes Firebase browser permissions', async () => {
+    const disabled = await makeApp(true).inject({ method: 'GET', url: '/api/account/config' });
+    expect(disabled.json()).toEqual({ enabled: false });
+    expect(disabled.headers['cross-origin-opener-policy']).toBe('same-origin');
+    const firebase = { projectId: 'demo-mundi', authDomain: 'demo-mundi.firebaseapp.com', apiKey: 'example-public-api-key-123456', appId: '1:123:web:abcdef' };
+    const app = createApp(loadConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://example.com', FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, private_key: 'must never be exposed' }) }), false);
+    apps.push(app);
+    const response = await app.inject({ method: 'GET', url: '/api/account/config' });
+    expect(response.json()).toEqual({ enabled: true, firebase });
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups');
+    expect(response.headers['content-security-policy']).toContain('https://demo-mundi.firebaseapp.com');
+    expect(response.headers['content-security-policy']).toContain('https://firestore.googleapis.com');
+    expect(response.headers['content-security-policy']).not.toContain('unsafe-inline');
+    expect(response.headers['content-security-policy']).not.toContain('https://*.googleapis.com');
+  });
   it('serves client files without exposing private files or directory traversal', async () => {
     const app = createApp(loadConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://example.com' }));
     apps.push(app);
@@ -128,3 +144,4 @@ describe('HTTP foundation', () => {
     expect(malformed.json()).toEqual({ error: 'INVALID_REQUEST' });
   });
 });
+

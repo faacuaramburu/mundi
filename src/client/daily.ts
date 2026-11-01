@@ -11,6 +11,7 @@ import { countryName, getLanguage, guessCount, onLanguageChange, setTranslatedTe
 import { countryFlag } from './flags.js';
 import { applyHistoryOrder } from './history-order.js';
 import { renderRoundResult } from './round-result.js';
+import { progressGet, progressSet, progressOwner } from './progress-storage.js';
 
 const storageKey = (day: string) => `mundi-daily-v1:${day}`;
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -21,7 +22,7 @@ async function request<T>(path: string, body?: object): Promise<T> {
   return await response.json() as T;
 }
 function readProgress(day: string, ids: ReadonlySet<string>): DailyProgress {
-  try { return parseDailyProgress(JSON.parse(localStorage.getItem(storageKey(day)) ?? 'null') as unknown, day, ids); }
+  try { return parseDailyProgress(JSON.parse(progressGet(storageKey(day)) ?? 'null') as unknown, day, ids); }
   catch { return { day, guesses: [], targetId: null, won: false }; }
 }
 function schedule(tick: () => void): void {
@@ -58,6 +59,7 @@ export function initializeDailyCard(atlas: Atlas): void {
   }
   void refresh(); schedule(tick);
   window.addEventListener('storage', tick);
+  window.addEventListener('mundi-progress-restored', tick);
 }
 
 export async function startDaily(atlas: Atlas, globe: Globe, collection: Collection): Promise<void> {
@@ -77,7 +79,7 @@ export async function startDaily(atlas: Atlas, globe: Globe, collection: Collect
   feedback.textContent = t('connecting'); input.disabled = true; button.disabled = true;
   const showGiveUp = bindGiveUp(() => { void giveUp(); });
   function save(): void {
-    try { localStorage.setItem(storageKey(progress.day), JSON.stringify(progress)); }
+    try { progressSet(storageKey(progress.day), JSON.stringify(progress)); }
     catch { storageAvailable = false; }
   }
   function mergeSaved(): void {
@@ -182,7 +184,9 @@ export async function startDaily(atlas: Atlas, globe: Globe, collection: Collect
     if (progress.targetId) { paint(); render(); return; }
     if (progress.guesses.some(guess => guess.countryId === country.id)) { error = t('duplicate'); render(); return; }
     const day = info.day;
+    const owner = progressOwner();
     const result = await act({ day, countryId: country.id }, '/api/daily/guess') as Guess | null;
+    if (owner !== progressOwner()) { await loadDay(); return; }
     if (result && info.day === day) {
       mergeSaved();
       if (!progress.targetId && !progress.guesses.some(guess => guess.countryId === result.countryId)) {
@@ -198,7 +202,9 @@ export async function startDaily(atlas: Atlas, globe: Globe, collection: Collect
     mergeSaved();
     if (progress.targetId) { paint(); render(); return; }
     const day = info.day;
+    const owner = progressOwner();
     const result = await act({ day }, '/api/daily/giveup') as { targetId: string } | null;
+    if (owner !== progressOwner()) { await loadDay(); return; }
     if (result && info.day === day) { mergeSaved(); progress.targetId ??= result.targetId; save(); paint(); }
     render();
   }
@@ -210,6 +216,9 @@ export async function startDaily(atlas: Atlas, globe: Globe, collection: Collect
   });
   window.addEventListener('storage', event => {
     if (info && !busy && event.key === storageKey(info.day)) { progress = readProgress(info.day, ids); paint(); render(); }
+  });
+  window.addEventListener('mundi-progress-restored', () => {
+    if (info && !busy) { progress = readProgress(info.day, ids); paint(); render(); }
   });
   onLanguageChange(render); schedule(tick);
   try { await loadDay(); }

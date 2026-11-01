@@ -2,6 +2,23 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  accountLogin: ['Sign in', 'Iniciar sesión'],
+  accountGoogle: ['Continue with Google', 'Continuar con Google'],
+  accountTitle: ['Your account', 'Tu cuenta'],
+  accountSaveTitle: ['Save your discoveries', 'Guardá tus descubrimientos'],
+  accountLoading: ['Loading your account…', 'Cargando tu cuenta…'],
+  accountGuestHint: ['Sign in to save your countries and daily progress across devices. Progress in this browser will be added to your account. You can also keep playing as a guest.', 'Entrá para guardar tus países y desafíos entre dispositivos. El progreso de este navegador se suma a tu cuenta. También podés seguir como invitado.'],
+  accountProfileHint: ['Your friends see this nickname. It syncs with your account.', 'Tus amigos ven este nombre. Se sincroniza con tu cuenta.'],
+  accountSyncing: ['Saving your progress…', 'Guardando tu progreso…'],
+  accountSaved: ['Your progress is saved in your account. You can continue on another device.', 'Tu progreso está guardado en tu cuenta. Podés continuar desde otro dispositivo.'],
+  accountSyncError: ['Could not sync right now. Your local progress is kept; we will retry automatically.', 'No se pudo sincronizar ahora. Conservamos tu progreso local y volveremos a intentarlo.'],
+  accountLoginError: ['Could not sign in. Please try again.', 'No se pudo iniciar sesión. Volvé a intentarlo.'],
+  accountPopupBlocked: ['Allow the Google sign-in window in your browser and try again.', 'Permití la ventana de inicio de sesión de Google en tu navegador y volvé a intentarlo.'],
+  accountLogout: ['Sign out', 'Cerrar sesión'],
+  accountRetry: ['Retry sync', 'Reintentar sincronización'],
+  accountGuest: ['Keep playing as a guest', 'Seguir como invitado'],
+  accountClose: ['Close', 'Cerrar'],
+  accountLocalAndCloud: ['Your progress syncs with your account.', 'Tu progreso se sincroniza con tu cuenta.'],
   dailyTitle: ['Daily challenge', 'Desafío diario'],
   dailyAvailable: ['Challenge available · Play →', 'Desafío disponible · Jugar →'],
   dailyResume: ['Challenge in progress · Continue →', 'Desafío en curso · Continuar →'],

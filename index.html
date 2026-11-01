@@ -45,7 +45,20 @@
           <span id="theme-label" data-i18n="darkMode">Dark mode</span>
         </button>
         <button id="language-toggle" class="language-button" type="button">Español</button>
+        <button id="account-toggle" class="account-button" type="button" hidden>Sign in</button>
       </header>
+      <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
+        <button id="account-close" class="account-close" type="button" aria-label="Close" data-i18n-aria="accountClose">×</button>
+        <h2 id="account-title" data-i18n="accountSaveTitle">Save your discoveries</h2>
+        <p id="account-identity" class="account-identity"></p>
+        <p id="account-status" role="status" aria-live="polite"></p>
+        <div class="account-actions">
+          <button id="account-login" class="secondary-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
+          <button id="account-logout" class="secondary-button" type="button" data-i18n="accountLogout" hidden>Sign out</button>
+          <button id="account-retry" class="secondary-button" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
+        </div>
+        <button id="account-guest" class="text-link" type="button" data-i18n="accountGuest">Keep playing as a guest</button>
+      </dialog>
       <section id="country-faq" class="country-faq" aria-labelledby="faq-title" hidden>
         <div class="faq-content">
           <h2 id="faq-title" data-i18n="faqTitle">Countries and distances</h2>

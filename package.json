@@ -26,6 +26,7 @@
     "@fastify/websocket": "11.3.3",
     "d3-geo": "3.1.1",
     "fastify": "5.12.5",
+    "firebase": "13.1.0",
     "three": "0.186.1",
     "ws": "8.22.0"
   },
@@ -43,5 +44,9 @@
     "typescript-eslint": "8.71.1",
     "vite": "8.3.4",
     "vitest": "5.0.3"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.7"
   }
 }
+

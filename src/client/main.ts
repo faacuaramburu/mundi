@@ -12,6 +12,7 @@ import { initializeFaq } from './faq.js';
 import { initializeMotion } from './motion.js';
 import { initializeAnalytics } from './analytics.js';
 import { initializeDailyCard } from './daily.js';
+import { initializeAccount } from './account.js';
 
 initializeLanguage();
 initializeTheme();
@@ -65,6 +66,7 @@ async function initializeGame(): Promise<Globe> {
   }
 
   const collection = createCollection(atlas);
+  void initializeAccount(atlas);
   document.querySelector('#home-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;
   if (isHome) {
     const updateHomeCollection = () => {

@@ -9,6 +9,7 @@ import type { Rooms } from './rooms.js';
 
 export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
   const production = config.environment === 'production';
+  const authOrigin = config.firebase ? `https://${config.firebase.authDomain}` : null;
   const app = Fastify({
     logger: false,
     trustProxy: false,
@@ -24,14 +25,17 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
   app.server.maxConnections = 512;
   app.register(websocket, { options: { maxPayload: 1024, perMessageDeflate: false } });
   app.register(helmet, {
+    crossOriginOpenerPolicy: { policy: authOrigin ? 'same-origin-allow-popups' : 'same-origin' },
     contentSecurityPolicy: {
       useDefaults: false,
       directives: {
         defaultSrc: ["'none'"],
-        scriptSrc: ["'self'", ...(production ? ['https://static.cloudflareinsights.com/beacon.min.js'] : [])],
+        scriptSrc: ["'self'", ...(production ? ['https://static.cloudflareinsights.com/beacon.min.js'] : []), ...(authOrigin ? ['https://apis.google.com'] : [])],
         styleSrc: ["'self'"],
         imgSrc: ["'self'"],
-        connectSrc: ["'self'", config.origin.replace(/^http/, 'ws'), ...(production ? ['https://cloudflareinsights.com/cdn-cgi/rum'] : [])],
+        connectSrc: ["'self'", config.origin.replace(/^http/, 'ws'), ...(production ? ['https://cloudflareinsights.com/cdn-cgi/rum'] : []),
+          ...(authOrigin ? [authOrigin, 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', 'https://firestore.googleapis.com'] : [])],
+        ...(authOrigin ? { frameSrc: [authOrigin] } : {}),
         fontSrc: ["'self'"],
         baseUri: ["'none'"],
         objectSrc: ["'none'"],
@@ -65,6 +69,8 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
   });
 
   app.register(async (scope) => {
+    scope.get('/api/account/config', { schema: { querystring: { type: 'object', properties: {}, additionalProperties: false } } }, async () =>
+      config.firebase ? { enabled: true, firebase: config.firebase } : { enabled: false });
     scope.addHook('onRequest', async (request, reply) => {
       if (!request.headers.upgrade) return;
       if (request.headers.origin !== config.origin) {
@@ -109,3 +115,4 @@ export function createApp(config: Config, serveClient = true, rooms?: Rooms) {
 
   return app;
 }
+

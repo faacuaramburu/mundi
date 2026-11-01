@@ -6,6 +6,7 @@ import { parseCollection } from '../shared/collection.js';
 import type { Globe } from './globe.js';
 import { countryName, getLanguage, onLanguageChange, setTranslatedText, t } from './i18n.js';
 import { countryFlag } from './flags.js';
+import { progressGet, progressSet, progressOwner } from './progress-storage.js';
 
 const key = 'mundi-collection-v1';
 const datesKey = 'mundi-collection-dates-v1';
@@ -13,13 +14,13 @@ export function createCollection(atlas: Atlas) {
   const validIds = new Set(atlas.countries.map(country => country.id));
   let storageAvailable = true;
   let ids = new Set<string>();
-  try { ids = new Set(parseCollection(JSON.parse(localStorage.getItem(key) ?? '[]') as unknown, validIds)); }
+  try { ids = new Set(parseCollection(JSON.parse(progressGet(key) ?? '[]') as unknown, validIds)); }
   catch { storageAvailable = false; }
   const listeners = new Set<() => void>();
   const dates = new Map<string, number>();
   function mergeDates(): void {
     try {
-      const stored: unknown = JSON.parse(localStorage.getItem(datesKey) ?? '[]');
+      const stored: unknown = JSON.parse(progressGet(datesKey) ?? '[]');
       if (!Array.isArray(stored)) return;
       for (const entry of stored.slice(0, 195)) {
         if (!Array.isArray(entry)) continue;
@@ -32,7 +33,7 @@ export function createCollection(atlas: Atlas) {
   mergeDates();
   function mergeSaved(): void {
     try {
-      const stored = parseCollection(JSON.parse(localStorage.getItem(key) ?? '[]') as unknown, validIds);
+      const stored = parseCollection(JSON.parse(progressGet(key) ?? '[]') as unknown, validIds);
       for (const id of stored) ids.add(id);
       mergeDates();
     } catch { storageAvailable = false; }
@@ -48,8 +49,8 @@ export function createCollection(atlas: Atlas) {
       ids.add(id);
       if (!dates.has(id)) dates.set(id, Date.now());
       try {
-        localStorage.setItem(key, JSON.stringify([...ids]));
-        localStorage.setItem(datesKey, JSON.stringify([...dates]));
+        progressSet(key, JSON.stringify([...ids]));
+        progressSet(datesKey, JSON.stringify([...dates]));
         storageAvailable = true;
       } catch { storageAvailable = false; }
       for (const listener of listeners) listener();
@@ -60,6 +61,10 @@ export function createCollection(atlas: Atlas) {
   window.addEventListener('storage', event => {
     if (event.key !== key && event.key !== datesKey) return;
     mergeSaved(); for (const listener of listeners) listener();
+  });
+  window.addEventListener('mundi-progress-restored', () => {
+    ids = new Set(); dates.clear(); mergeSaved();
+    for (const listener of listeners) listener();
   });
   return collection;
 }
@@ -91,7 +96,7 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
     document.querySelector('#index-count')!.textContent = `${regionalIds.size} / ${regionalCountries.length}`;
     document.querySelector('#index-progress')!.setAttribute('max', String(regionalCountries.length));
     document.querySelector('#index-progress')!.setAttribute('value', String(regionalIds.size));
-    setTranslatedText(document.querySelector('#storage-note')!, collection.canSave ? 'localProgress' : 'storageUnavailable');
+    setTranslatedText(document.querySelector('#storage-note')!, collection.canSave ? progressOwner() ? 'accountLocalAndCloud' : 'localProgress' : 'storageUnavailable');
     const visible = filterIndexCountries(atlas.countries, collection.ids, { query: query.value, status: filter.value, region: region.value })
       .sort((a, b) => {
         const alphabetical = countryName(a).localeCompare(countryName(b));
@@ -131,3 +136,4 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
   globe.onMapViewChange(() => { if (region.value !== 'all') globe.focusRegion(region.value); });
   onLanguageChange(render); collection.subscribe(render); render();
 }
+
