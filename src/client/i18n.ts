@@ -3,6 +3,14 @@ import type { Country } from '../shared/countries.js';
 export type Language = 'en' | 'es';
 const messages = {
   accountLogin: ['Sign in', 'Iniciar sesión'],
+  usernameLabel: ['Unique username', 'Nombre de usuario único'],
+  usernamePlaceholder: ['Choose your username', 'Elegí tu usuario'],
+  usernameHint: ['3–24 characters: a–z, numbers and _. At least 3 letters. Names are saved in lowercase.', '3–24 caracteres: letras a–z, números y _. Mínimo 3 letras. Se guarda en minúsculas.'],
+  usernameInvalid: ['Use 3–24 characters, start with a letter and include at least 3 letters. Only a–z, numbers and _ are allowed.', 'Usá 3–24 caracteres, empezá con una letra e incluí mínimo 3 letras. Solo letras a–z, números y _.'],
+  usernameSaving: ['Reserving your username…', 'Reservando tu usuario…'],
+  usernameTaken: ['That username is already taken. Choose another.', 'Ese usuario ya está ocupado. Elegí otro.'],
+  usernameSaved: ['Your unique username is saved.', 'Tu nombre de usuario único está guardado.'],
+  usernameUnavailable: ['Could not reserve the username. Check your connection and try again.', 'No se pudo reservar el usuario. Revisá tu conexión y volvé a intentar.'],
   accountGoogle: ['Continue with Google', 'Continuar con Google'],
   accountTitle: ['Your account', 'Tu cuenta'],
   accountSaveTitle: ['Save your discoveries', 'Guardá tus descubrimientos'],
@@ -290,4 +298,3 @@ export function initializeLanguage(): void {
     for (const listener of listeners) listener();
   });
 }
-

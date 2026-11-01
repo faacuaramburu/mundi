@@ -11,6 +11,9 @@ import type { Message } from './i18n.js';
 import { onLanguageChange, t } from './i18n.js';
 import { importGuestProgress, readAccountProgress, storeAccountProgress, validDailyDay } from './account-progress.js';
 import { progressOwner, setProgressOwner } from './progress-storage.js';
+import { normalizeUsername } from '../shared/username.js';
+import { setAccountIdentity, setUsernameSaver } from './account-identity.js';
+import { claimUsername } from './username-account.js';
 
 export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet<string>): void {
   const app = initializeApp(config); const auth = getAuth(app); const db = getFirestore(app);
@@ -23,12 +26,19 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   let pendingAuth = false; let timer = 0; let running: number | null = null; let watching = false;
   const dirty = new Set<string>(); let subscriptions: Unsubscribe[] = [];
   const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
+  setUsernameSaver(async value => {
+    const uid = user?.uid; const version = generation;
+    if (!uid || progressOwner() !== uid) return 'unavailable';
+    const result = await claimUsername(db, uid, value);
+    return generation === version && user?.uid === uid ? result : 'unavailable';
+  });
   function render(): void {
     button.hidden = false; button.disabled = status === 'accountLoading';
     button.textContent = t(user ? 'accountTitle' : 'accountLogin');
     document.querySelector('#account-title')!.textContent = t(user ? 'accountTitle' : 'accountSaveTitle');
     document.querySelector('#account-identity')!.textContent = user?.email ?? '';
     document.querySelector('#account-status')!.textContent = t(status);
+    document.querySelector<HTMLElement>('#account-username-profile')!.hidden = !user;
     login.hidden = !!user; logout.hidden = !user;
     login.disabled = pendingAuth; logout.disabled = pendingAuth;
     retry.hidden = !user || status !== 'accountSyncError';
@@ -48,6 +58,18 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     if (watching) return; watching = true;
     const active = () => generation === version && user?.uid === uid && progressOwner() === uid;
     const failed = () => { if (active()) { status = 'accountSyncError'; render(); } };
+    let prompted = false;
+    subscriptions.push(onSnapshot(doc(db, 'players', uid), { includeMetadataChanges: true }, snapshot => {
+      if (!active() || snapshot.metadata.fromCache) return;
+      const username = normalizeUsername(snapshot.data()?.username);
+      if (username) {
+        const local = readAccountProgress(uid, ids);
+        const date: unknown = snapshot.data()?.nameUpdatedAt;
+        try { storeAccountProgress(uid, { ...local, name: username, nameUpdatedAt: typeof date === 'number' ? date : 0 }, false); } catch { failed(); }
+      }
+      setAccountIdentity(uid, username, true);
+      if (!prompted && !username) { prompted = true; if (!dialog.open) dialog.showModal(); }
+    }, failed));
     subscriptions.push(onSnapshot(doc(db, 'players', uid, 'progress', 'collection'), snapshot => {
       if (!active() || !snapshot.exists()) return;
       const local = readAccountProgress(uid, ids);
@@ -129,12 +151,13 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
         const merged = await runTransaction(db, async tx => {
           const remote = await tx.get(ref); if (!active()) throw new Error('Account changed');
           const local = readAccountProgress(uid, ids);
-          const remoteName = normalizePlayerName(typeof remote.data()?.name === 'string' ? remote.data()!.name as string : '') ?? '';
+          const username = normalizeUsername(remote.data()?.username);
+          const remoteName = username ?? normalizePlayerName(typeof remote.data()?.name === 'string' ? remote.data()!.name as string : '') ?? '';
           const remoteTime: unknown = remote.data()?.nameUpdatedAt;
           const timestamp = typeof remoteTime === 'number' && remoteTime >= 0 && remoteTime <= Date.now() ? remoteTime : 0;
-          const useLocal = local.nameUpdatedAt > timestamp || (!remoteName && !!local.name);
+          const useLocal = !username && (local.nameUpdatedAt > timestamp || (!remoteName && !!local.name));
           const next = { name: useLocal ? local.name : remoteName, nameUpdatedAt: useLocal ? local.nameUpdatedAt : timestamp };
-          tx.set(ref, { ...next, createdAt: remote.data()?.createdAt ?? serverTimestamp(), lastSeenAt: serverTimestamp() });
+          tx.set(ref, { ...next, createdAt: remote.data()?.createdAt ?? serverTimestamp(), lastSeenAt: serverTimestamp() }, { merge: true });
           return next;
         });
         if (!active()) return;
@@ -173,6 +196,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   onAuthStateChanged(auth, next => {
     generation++; clearTimeout(timer); for (const stop of subscriptions) stop(); subscriptions = []; watching = false; dirty.clear();
     user = next;
+    setAccountIdentity(next?.uid ?? null, null, false);
     if (!next) { setProgressOwner(null); status = 'accountGuestHint'; render(); return; }
     try { importGuestProgress(next.uid, ids); }
     catch { /* The guest copy remains intact if durable migration is unavailable. */ }
@@ -180,4 +204,3 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   }, () => { status = 'accountLoginError'; render(); });
   onLanguageChange(render); render();
 }
-

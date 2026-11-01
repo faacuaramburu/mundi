@@ -19,6 +19,8 @@ The web API key is public app configuration. Do not put service-account credenti
 
 ## Progress and access
 
+- Signed-in players choose a unique username: 3–24 characters, at least three ASCII letters, starting with a letter, with numbers and underscores allowed. Names are normalized to lowercase. A transaction claims `usernames/{username}` together with the owner's profile; rules reject duplicate claims, orphan reservations and cross-account changes. Renaming releases the previous reservation atomically. Guests can still choose a local display name.
+
 - Existing guest discoveries, their known dates, daily histories, and the chosen game nickname are merged into the signed-in account. Guest data is consumed only after a durable local copy succeeds.
 - Discoveries merge by union and earliest known date. Completed daily challenges take precedence; conflicting histories are not concatenated. The last 366 days are synchronized.
 - Each UID has a separate browser cache. Signing out returns to guest play. Changing Google accounts does not copy the previous account's cache.

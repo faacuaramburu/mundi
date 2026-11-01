@@ -2,11 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function owns(uid) { return request.auth != null && request.auth.uid == uid; }
+    function validUsername(name) {
+      return name is string && name.size() <= 24 && name.matches('^[a-z][a-z0-9_]{2,23}$')
+        && name.matches('.*[a-z].*[a-z].*[a-z].*');
+    }
+    function hasUsername(data) { return data.keys().hasAny(['username']); }
+    function usernameMatches(uid) {
+      return (!hasUsername(request.resource.data) && (!exists(/databases/$(database)/documents/players/$(uid)) || !hasUsername(resource.data)))
+        || (hasUsername(request.resource.data) && validUsername(request.resource.data.username)
+          && request.resource.data.name == request.resource.data.username
+          && getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == uid
+          && (!exists(/databases/$(database)/documents/players/$(uid)) || !hasUsername(resource.data)
+            || resource.data.username == request.resource.data.username
+            || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.username))));
+    }
     match /players/{uid} {
       allow read: if owns(uid);
       allow create, update: if owns(uid)
         && request.resource.data.keys().hasAll(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
-        && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
+        && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt', 'username'])
+        && usernameMatches(uid)
         && request.resource.data.name is string && request.resource.data.name.size() <= 24
         && request.resource.data.nameUpdatedAt is number && request.resource.data.nameUpdatedAt >= 0
         && request.resource.data.nameUpdatedAt <= request.time.toMillis() + 60000
@@ -33,8 +48,18 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time;
       }
     }
+    match /usernames/{username} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null && validUsername(username)
+        && request.resource.data.keys().hasAll(['uid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid && request.resource.data.createdAt == request.time
+        && getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username == username;
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid
+        && validUsername(getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username)
+        && getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username != username;
+    }
     // No public player directory, global reads, or client-side administration.
     match /{document=**} { allow read, write: if false; }
   }
 }
-
