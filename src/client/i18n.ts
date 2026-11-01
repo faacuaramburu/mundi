@@ -5,6 +5,8 @@ const messages = {
   navigation: ['Navigation', 'Navegación'],
   accountLogin: ['Sign in', 'Iniciar sesión'],
   usernameLabel: ['Unique username', 'Nombre de usuario único'],
+  usernameEdit: ['Edit username', 'Editar usuario'],
+  usernameCancel: ['Cancel', 'Cancelar'],
   usernamePlaceholder: ['Choose your username', 'Elegí tu usuario'],
   usernameHint: ['3–24 characters: a–z, numbers and _. At least 3 letters. Names are saved in lowercase.', '3–24 caracteres: letras a–z, números y _. Mínimo 3 letras. Se guarda en minúsculas.'],
   usernameInvalid: ['Use 3–24 characters, start with a letter and include at least 3 letters. Only a–z, numbers and _ are allowed.', 'Usá 3–24 caracteres, empezá con una letra e incluí mínimo 3 letras. Solo letras a–z, números y _.'],

@@ -39,7 +39,6 @@
         <h1 id="mode-label" class="mode-label">Mundi</h1>
         <nav class="header-actions" aria-label="Navigation" data-i18n-aria="navigation">
           <div class="header-links">
-          <a class="header-index text-link" href="/?view=index" data-i18n="countryIndex">Country index</a>
           <button id="faq-toggle" class="header-faq" type="button" aria-controls="country-faq" aria-expanded="false" aria-label="FAQ" data-i18n-aria="faq">FAQ</button>
           </div>
           <div class="header-preferences">
@@ -59,11 +58,13 @@
           <button id="account-close" class="account-close" type="button" aria-label="Close" data-i18n-aria="accountClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
         <p id="account-identity" class="account-identity"></p>
+        <div id="account-profile-overview" class="account-profile-overview" hidden><strong id="account-username"></strong><button id="account-edit-username" class="text-link" type="button" aria-controls="account-username-profile" aria-expanded="false" data-i18n="usernameEdit">Edit username</button></div>
         <p id="account-status" role="status" aria-live="polite"></p>
         <div id="account-username-profile" data-player-profile hidden></div>
+        <button id="account-cancel-username" class="text-link" type="button" data-i18n="usernameCancel" hidden>Cancel</button>
         <div class="account-actions">
           <button id="account-login" class="guess-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
-          <button id="account-logout" class="secondary-button" type="button" data-i18n="accountLogout" hidden>Sign out</button>
+          <button id="account-logout" class="text-link" type="button" data-i18n="accountLogout" hidden>Sign out</button>
           <button id="account-retry" class="secondary-button" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
         </div>
         <button id="account-guest" class="text-link" type="button" data-i18n="accountGuest">Keep playing as a guest</button>

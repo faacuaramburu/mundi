@@ -41,11 +41,12 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     document.querySelector('#account-title')!.textContent = t(user ? 'accountTitle' : 'accountSaveTitle');
     document.querySelector('#account-identity')!.textContent = user?.email ?? '';
     document.querySelector('#account-status')!.textContent = t(status);
-    document.querySelector<HTMLElement>('#account-username-profile')!.hidden = !user;
+    dialog.toggleAttribute('data-signed-in', !!user);
     login.hidden = !!user; logout.hidden = !user;
     login.disabled = pendingAuth; logout.disabled = pendingAuth;
     retry.hidden = !user || status !== 'accountSyncError';
     document.querySelector('#account-guest')!.textContent = t(user ? 'accountClose' : 'accountGuest');
+    document.querySelector<HTMLButtonElement>('#account-guest')!.hidden = !!user;
     document.querySelector('#storage-note')?.setAttribute('data-i18n', user ? 'accountLocalAndCloud' : 'localProgress');
   }
   button.addEventListener('click', () => dialog.showModal());

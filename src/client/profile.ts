@@ -18,7 +18,10 @@ export function onProfileChange(listener: () => void): () => void {
 
 export function initializeProfile(): void {
   let saving = false;
-  const fields: { input: HTMLInputElement; label: HTMLLabelElement; button: HTMLButtonElement; note: HTMLElement; message: Message }[] = [];
+  let editing = false; let previousOwner = progressOwner();
+  const edit = document.querySelector<HTMLButtonElement>('#account-edit-username')!;
+  const cancel = document.querySelector<HTMLButtonElement>('#account-cancel-username')!;
+  const fields: { host: HTMLElement; input: HTMLInputElement; label: HTMLLabelElement; button: HTMLButtonElement; note: HTMLElement; message: Message }[] = [];
   document.querySelectorAll<HTMLElement>('[data-player-profile]').forEach((host, index) => {
     const form = document.createElement('form'); form.className = 'player-profile';
     const label = document.createElement('label');
@@ -31,7 +34,7 @@ export function initializeProfile(): void {
     const button = document.createElement('button'); button.type = 'submit'; button.className = 'secondary-button';
     const row = document.createElement('div'); row.className = 'profile-row'; row.append(input, button);
     form.append(label, row, note); host.append(form);
-    const field = { input, label, button, note, message: 'profileHint' as Message }; fields.push(field);
+    const field = { host, input, label, button, note, message: 'profileHint' as Message }; fields.push(field);
     form.addEventListener('submit', event => { void submit(event); });
     async function submit(event: SubmitEvent): Promise<void> {
       event.preventDefault();
@@ -46,11 +49,12 @@ export function initializeProfile(): void {
         if (progressOwner() !== owner) { render(); return; }
         field.message = result === 'saved' ? 'usernameSaved' : result === 'taken' ? 'usernameTaken' : result === 'invalid' ? 'usernameInvalid' : 'usernameUnavailable';
         if (result === 'saved') {
+          editing = false;
           name = next;
           for (const other of fields) { other.input.value = name; other.input.removeAttribute('aria-invalid'); other.message = 'usernameSaved'; }
           for (const listener of listeners) listener();
         } else input.setAttribute('aria-invalid', 'true');
-        render(); return;
+        render(); if (result === 'saved') edit.focus(); return;
       }
       const next = normalizePlayerName(input.value);
       if (next === null) {
@@ -68,8 +72,14 @@ export function initializeProfile(): void {
     input.addEventListener('input', () => { input.removeAttribute('aria-invalid'); field.message = 'profileHint'; render(); });
   });
   function render(): void {
+    const account = !!progressOwner(); const identity = getAccountIdentity();
+    if (previousOwner !== progressOwner()) { editing = false; previousOwner = progressOwner(); }
+    document.querySelector<HTMLElement>('#account-profile-overview')!.hidden = !account || !identity.username;
+    document.querySelector('#account-username')!.textContent = identity.username ? `@${identity.username}` : '';
+    edit.setAttribute('aria-expanded', String(editing)); edit.disabled = saving;
+    cancel.hidden = !account || !identity.username || !editing; cancel.disabled = saving;
     for (const field of fields) {
-      const account = !!progressOwner(); const identity = getAccountIdentity();
+      field.host.hidden = field.host.id === 'account-username-profile' ? !account || (!!identity.username && !editing) : account;
       field.label.textContent = t(account ? 'usernameLabel' : 'profileName'); field.button.textContent = t('profileSave');
       field.input.placeholder = t(account ? 'usernamePlaceholder' : 'profilePlaceholder');
       field.input.minLength = account ? 3 : 0;
@@ -78,6 +88,12 @@ export function initializeProfile(): void {
       field.note.classList.toggle('error', ['profileInvalid', 'usernameInvalid', 'usernameTaken', 'usernameUnavailable'].includes(field.message));
     }
   }
+  edit.addEventListener('click', () => { editing = true; render(); fields.find(field => field.host.id === 'account-username-profile')?.input.focus(); });
+  cancel.addEventListener('click', () => {
+    editing = false;
+    for (const field of fields) { field.input.value = getPlayerName(); field.message = 'profileHint'; field.input.removeAttribute('aria-invalid'); }
+    render(); edit.focus();
+  });
   const unsubscribe = onLanguageChange(render);
   const storage = (event: StorageEvent) => {
     if (event.key !== key && event.key !== null) return;
