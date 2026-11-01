@@ -79,8 +79,15 @@ input { caret-color: var(--ink); }
 .brand-wordmark { font-family: 'Smooch Sans', 'Smooch Sans Fallback', Barlow, sans-serif; font-size: 45px; font-weight: 700; line-height: 1; letter-spacing: -.02em; white-space: nowrap; }
 .mode-label { font-size: var(--body-size); font-weight: 400; margin: 0; line-height: 1.3; }
 .header-actions { display: flex; align-items: center; gap: clamp(16px, 2vw, 28px); margin-left: auto; }
-.header-actions :is(.header-index, .header-faq, .language-button, .account-button) { margin: 0; padding: 10px 0; min-height: 44px; border: 0; background: transparent; color: var(--ink); font-size: var(--meta-size); line-height: 1.5; white-space: nowrap; text-decoration: underline; text-underline-offset: 4px; }
+.header-links, .header-preferences { display: flex; align-items: center; }
+.header-links { gap: 24px; }
+.header-preferences { gap: 12px; border-left: 1px solid var(--line); padding-left: 24px; }
+.header-actions :is(.header-index, .header-faq, .language-button, .account-button) { margin: 0; padding: 10px 0; min-height: 44px; border: 0; background: transparent; color: var(--ink); font-size: var(--meta-size); line-height: 1.5; white-space: nowrap; text-decoration: none; text-underline-offset: 4px; }
 .header-actions :is(a, button):hover { color: var(--muted); }
+.header-actions :is(.header-index, .header-faq, .language-button):hover { text-decoration: underline; }
+.header-actions .account-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; padding-inline: 6px; }
+.account-icon { width: 26px; height: 26px; flex-shrink: 0; }
+.header-actions .theme-button { padding: 10px; }
 .account-dialog { position: fixed; width: min(480px, calc(100% - 32px)); max-height: calc(100svh - 32px); padding: 28px 32px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--paper); color: var(--ink); font-size: 1rem; }
 .account-dialog::backdrop { background: rgb(0 0 0 / .55); }
 .account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px; }
@@ -468,6 +475,8 @@ select:disabled { opacity: .5; }
   .topbar { display: grid; grid-template-columns: auto 1fr; gap: 0 20px; }
   .topbar .mode-label { justify-self: end; }
   .header-actions { grid-column: 1 / -1; justify-content: space-between; gap: 16px; margin: 0; }
+  .header-links { gap: 16px; }
+  .header-preferences { gap: 8px; padding-left: 16px; }
   .account-dialog { padding: 24px; }
   .theme-button { margin-left: 0; }
   .language-button { margin-left: 0; }

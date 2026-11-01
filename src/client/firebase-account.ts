@@ -34,7 +34,10 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   });
   function render(): void {
     button.hidden = false; button.disabled = status === 'accountLoading';
-    button.textContent = t(user ? 'accountTitle' : 'accountLogin');
+    const accountLabel = t(user ? 'accountTitle' : 'accountLogin');
+    const label = document.querySelector<HTMLElement>('#account-label')!;
+    label.textContent = accountLabel; label.classList.toggle('sr-only', !!user);
+    button.setAttribute('aria-label', accountLabel); button.title = accountLabel;
     document.querySelector('#account-title')!.textContent = t(user ? 'accountTitle' : 'accountSaveTitle');
     document.querySelector('#account-identity')!.textContent = user?.email ?? '';
     document.querySelector('#account-status')!.textContent = t(status);

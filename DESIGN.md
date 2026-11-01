@@ -13,7 +13,7 @@ This documents the existing interface and its shared patterns. Refinements shoul
 
 - Primary actions use `.guess-button`: the theme's solid foreground/background contrast, semibold Barlow, and 6px corners. Examples: submit a guess, create a room, continue with Google.
 - Secondary actions use `.secondary-button`: a 1px field border, field background, 1rem type, `--control-radius` (6px) and `--control-height` (48px). Buttons and links with the same action role share this pattern. Daily result actions remain side by side and wrap their text when needed.
-- Navigation and tertiary actions use underlined text and transparent backgrounds. Header account, FAQ, language and index controls share the same type scale and underline offset. Give-up, close and guest alternatives retain visible keyboard focus and at least 44px touch targets.
+- Header navigation uses transparent controls, the same type scale and underlines on hover. Index and FAQ form the navigation group; language, theme and account form the utility group, separated by a thin rule. Theme uses its sun/moon icon; signed-in accounts use the outlined profile icon with a translated accessible label and tooltip. Guests also see the sign-in text. Tertiary page actions use underlined text. All controls retain visible keyboard focus and at least 44px touch targets.
 - Form fields use the same field palette, border and 6px corners as secondary controls. Related controls align within one row.
 - Reuse the authored SVG icon family: currentColor, unfilled paths, 1.6 stroke width. Home navigation uses the same arrow, including the nested daily challenge.
 
