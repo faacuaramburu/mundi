@@ -527,7 +527,7 @@ export class Globe {
     const delta = this.previousFrameAt === null || document.hidden ? 0 : Math.min(.1, Math.max(0, (now - this.previousFrameAt) / 1000));
     this.previousFrameAt = now;
     if (this.renderer && !this.flat) {
-      if (this.controls) this.controls.autoRotate = this.homePreview && !document.hidden && !prefersReducedMotion();
+      if (this.controls) this.controls.autoRotate = this.homePreview && !document.hidden;
       if (this.flight && this.controls) {
         const finished = this.flight.update(this.camera.position, this.controls.target, now);
         this.camera.lookAt(this.controls.target);
@@ -661,8 +661,8 @@ export class Globe {
     this.homePreview = true;
     this.onPointerLeave();
     this.showCollection(ids);
-    // One gentle turn in about three minutes; dragging still works normally.
-    if (this.controls) this.controls.autoRotateSpeed = .3;
+    // The home globe explicitly rotates, independently of optional UI animations.
+    if (this.controls) this.controls.autoRotateSpeed = .4;
   }
 
   clear(): void {
