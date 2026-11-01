@@ -37,24 +37,28 @@
           <span class="brand-wordmark">mundi</span>
         </a>
         <h1 id="mode-label" class="mode-label">Mundi</h1>
-        <a class="header-index text-link" href="/?view=index" data-i18n="countryIndex">Country index</a>
-        <button id="faq-toggle" class="header-faq" type="button" aria-controls="country-faq" aria-expanded="false" aria-label="FAQ" data-i18n-aria="faq">FAQ</button>
-        <button id="theme-toggle" class="theme-button" type="button" aria-pressed="false" aria-label="Switch to dark mode" data-i18n-aria="enableDarkMode">
-          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" /></svg>
-          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
-          <span id="theme-label" data-i18n="darkMode">Dark mode</span>
-        </button>
-        <button id="language-toggle" class="language-button" type="button">Español</button>
-        <button id="account-toggle" class="account-button" type="button" hidden>Sign in</button>
+        <nav class="header-actions" aria-label="Navigation" data-i18n-aria="navigation">
+          <a class="header-index text-link" href="/?view=index" data-i18n="countryIndex">Country index</a>
+          <button id="faq-toggle" class="header-faq" type="button" aria-controls="country-faq" aria-expanded="false" aria-label="FAQ" data-i18n-aria="faq">FAQ</button>
+          <button id="theme-toggle" class="theme-button" type="button" aria-pressed="false" aria-label="Switch to dark mode" data-i18n-aria="enableDarkMode">
+            <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" /></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
+            <span id="theme-label" data-i18n="darkMode">Dark mode</span>
+          </button>
+          <button id="language-toggle" class="language-button" type="button">Español</button>
+          <button id="account-toggle" class="account-button" type="button" aria-haspopup="dialog" aria-controls="account-dialog" hidden>Sign in</button>
+        </nav>
       </header>
       <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
-        <button id="account-close" class="account-close" type="button" aria-label="Close" data-i18n-aria="accountClose">×</button>
-        <h2 id="account-title" data-i18n="accountSaveTitle">Save your discoveries</h2>
+        <div class="account-heading">
+          <h2 id="account-title" data-i18n="accountSaveTitle">Save your discoveries</h2>
+          <button id="account-close" class="account-close" type="button" aria-label="Close" data-i18n-aria="accountClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+        </div>
         <p id="account-identity" class="account-identity"></p>
         <p id="account-status" role="status" aria-live="polite"></p>
         <div id="account-username-profile" data-player-profile hidden></div>
         <div class="account-actions">
-          <button id="account-login" class="secondary-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
+          <button id="account-login" class="guess-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
           <button id="account-logout" class="secondary-button" type="button" data-i18n="accountLogout" hidden>Sign out</button>
           <button id="account-retry" class="secondary-button" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
         </div>
@@ -117,7 +121,7 @@
             <nav class="home-choices" aria-label="Game modes" data-i18n-aria="welcome">
               <div class="home-singleplayer">
                 <a href="/?play=solo" class="home-choice"><span><strong data-i18n="singleplayer">Singleplayer</strong><small data-i18n="soloDescription">Find a country at your own pace.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
-                <a id="daily-home-link" class="daily-home-link" href="/?play=daily"><span class="daily-home-icon" aria-hidden="true">◉</span><span><strong data-i18n="dailyTitle">Daily challenge</strong><small id="daily-home-status">…</small></span></a>
+                <a id="daily-home-link" class="home-choice daily-home-link" href="/?play=daily"><span><strong data-i18n="dailyTitle">Daily challenge</strong><small id="daily-home-status">…</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" /></svg></a>
               </div>
               <a href="/?play=multi" class="home-choice"><span><strong data-i18n="multiplayer">Multiplayer</strong><small data-i18n="multiDescription">Private games for 2–4 friends.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
             </nav>
@@ -180,8 +184,10 @@
           </section>
           <section id="daily-panel" class="daily-panel" aria-labelledby="daily-title" hidden>
             <h2 id="daily-title" data-i18n="dailyTitle">Daily challenge</h2>
-            <p id="daily-date" class="room-rule"></p>
-            <p id="daily-streak" class="room-rule"></p>
+            <div class="daily-meta">
+              <p id="daily-date" class="room-rule"></p>
+              <p id="daily-streak" class="room-rule"></p>
+            </div>
             <p id="daily-countdown" class="daily-countdown" hidden></p>
             <p id="daily-storage" class="room-rule" data-i18n="dailyStorage" hidden>Progress could not be saved. Keep this page open to finish your challenge.</p>
             <div id="daily-result-actions" hidden><div class="daily-result-buttons"><button id="daily-share" class="secondary-button" type="button" data-i18n="dailyShare">Share result</button><a class="secondary-button" href="/?play=solo" data-i18n="keepPlaying">Keep playing</a></div><label for="daily-share-text" class="sr-only" data-i18n="dailyShareText">Result to copy</label><textarea id="daily-share-text" class="daily-share-text" readonly hidden></textarea></div>

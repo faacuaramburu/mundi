@@ -2,6 +2,7 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  navigation: ['Navigation', 'Navegación'],
   accountLogin: ['Sign in', 'Iniciar sesión'],
   usernameLabel: ['Unique username', 'Nombre de usuario único'],
   usernamePlaceholder: ['Choose your username', 'Elegí tu usuario'],
@@ -28,8 +29,8 @@ const messages = {
   accountClose: ['Close', 'Cerrar'],
   accountLocalAndCloud: ['Your progress syncs with your account.', 'Tu progreso se sincroniza con tu cuenta.'],
   dailyTitle: ['Daily challenge', 'Desafío diario'],
-  dailyAvailable: ['Challenge available · Play →', 'Desafío disponible · Jugar →'],
-  dailyResume: ['Challenge in progress · Continue →', 'Desafío en curso · Continuar →'],
+  dailyAvailable: ['Challenge available · Play', 'Desafío disponible · Jugar'],
+  dailyResume: ['Challenge in progress · Continue', 'Desafío en curso · Continuar'],
   dailyNext: ['New challenge in', 'Nuevo desafío en'],
   dailyCompleted: ['Daily challenge completed', 'Desafío diario completado'],
   dailyRule: ['The same country for everyone. Resets at 00:00 UTC.', 'El mismo país para todos. Se renueva a las 00:00 UTC.'],
