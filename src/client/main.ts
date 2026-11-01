@@ -67,6 +67,13 @@ async function initializeGame(): Promise<Globe> {
   const collection = createCollection(atlas);
   document.querySelector('#home-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;
   if (isHome) {
+    const updateHomeCollection = () => {
+      globe.showHomeCollection(collection.ids);
+      document.querySelector('#home-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;
+    };
+    updateHomeCollection();
+    const unsubscribe = collection.subscribe(updateHomeCollection);
+    if (import.meta.hot) import.meta.hot.dispose(unsubscribe);
     initializeDailyCard(atlas);
     setTranslatedText(document.querySelector('#mode-label')!, 'welcome');
   } else if (params.get('view') === 'index' && !params.has('room')) {

@@ -68,6 +68,8 @@ export class Globe {
   private hoverDirty = false;
   private hoverAfter = 0;
   private collectionMode = false;
+  private homePreview = false;
+  private previousFrameAt: number | null = null;
   private raycaster = new Raycaster();
   private surface = new Sphere(new Vector3(), 1);
   private flatViewport = document.createElement('div');
@@ -296,6 +298,7 @@ export class Globe {
   };
 
   private onPointerMove = (event: MouseEvent): void => {
+    if (this.homePreview) { this.onPointerLeave(); return; }
     if (event instanceof PointerEvent && event.pointerType === 'touch') {
       this.onPointerLeave();
       return;
@@ -424,6 +427,7 @@ export class Globe {
     // Throttle hit tests without postponing them indefinitely during camera damping.
     this.hoverAfter = performance.now() + 32;
     this.hoveredCountry = null;
+    if (this.homePreview) return;
     this.refreshPointer();
     if (!this.pointerInside) return;
     if (this.flatPointers.size || this.orbitInteracting) return;
@@ -520,14 +524,17 @@ export class Globe {
   }
 
   private animate = (now = performance.now()): void => {
+    const delta = this.previousFrameAt === null || document.hidden ? 0 : Math.min(.1, Math.max(0, (now - this.previousFrameAt) / 1000));
+    this.previousFrameAt = now;
     if (this.renderer && !this.flat) {
+      if (this.controls) this.controls.autoRotate = this.homePreview && !document.hidden && !prefersReducedMotion();
       if (this.flight && this.controls) {
         const finished = this.flight.update(this.camera.position, this.controls.target, now);
         this.camera.lookAt(this.controls.target);
         this.onCameraChange();
         if (finished) this.flight = null;
       }
-      if ((!this.flight && this.controls?.update()) || this.dirty) {
+      if ((!this.flight && this.controls?.update(this.homePreview ? delta : undefined)) || this.dirty) {
         this.renderer.render(this.scene, this.camera);
         this.hoverDirty = this.pointerKnown;
         this.dirty = false;
@@ -650,6 +657,14 @@ export class Globe {
     this.drawMap(); this.dirty = true;
   }
 
+  showHomeCollection(ids: ReadonlySet<string>): void {
+    this.homePreview = true;
+    this.onPointerLeave();
+    this.showCollection(ids);
+    // One gentle turn in about three minutes; dragging still works normally.
+    if (this.controls) this.controls.autoRotateSpeed = .3;
+  }
+
   clear(): void {
     this.colors.clear();
     for (const country of this.atlas.countries) this.land?.paint(country.id, '#667273');
@@ -674,6 +689,7 @@ export class Globe {
   }
 
   private updateLabel(): void {
+    if (this.homePreview) { this.label.hidden = true; return; }
     if (this.orbitInteracting || this.flatPointers.size || document.hidden) {
       this.label.hidden = true;
       return;
