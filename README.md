@@ -21,11 +21,13 @@ Enter a country name and select a suggestion. Colors and approximate distances g
 
 Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Filter by continent, discovery status and date. The home globe highlights the countries you have found and rotates slowly. Open the index from the home screen.
 
-## Optional Google accounts
+## Optional accounts
 
 Play without an account and keep your discoveries, daily attempts and optional guest name in this browser. Clearing site data removes guest progress.
 
-Sign in with Google to merge existing guest progress into your account and synchronize discoveries and daily challenges across devices. Each account has its own local cache; switching accounts keeps their progress separate.
+Sign in with Google or create an account with an email and password to merge existing guest progress into your account and synchronize discoveries and daily challenges across devices. Each account has its own local cache; switching accounts keeps their progress separate.
+
+Email registration requires at least 8 password characters and sends an email verification link. Forgotten passwords are reset through a link sent by Firebase. Existing Google players can use **Create or change password** inside their account to add password access to the same email and keep their UID and progress. Firebase Authentication manages password hashing; passwords are never written to Firestore, game storage, or server logs.
 
 Choose a unique username with 3–24 characters and at least three letters. Names start with a letter, allow a–z, numbers and underscores, and are saved in lowercase. The profile icon opens your account; this is the single place to edit a signed-in username. Guest display names remain optional on the home and multiplayer screens.
 
@@ -68,8 +70,6 @@ npm run lint
 npm run build
 npm run check:client-build
 ```
-
-The [visual conventions](DESIGN.md) document shared typography, navigation, controls and responsive behavior.
 
 ## Credits and license
 

@@ -14,6 +14,7 @@ import { progressOwner, setProgressOwner } from './progress-storage.js';
 import { normalizeUsername } from '../shared/username.js';
 import { setAccountIdentity, setUsernameSaver } from './account-identity.js';
 import { claimUsername } from './username-account.js';
+import { initializeEmailAuth } from './email-auth.js';
 
 export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet<string>): void {
   const app = initializeApp(config); const auth = getAuth(app); const db = getFirestore(app);
@@ -26,6 +27,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   let pendingAuth = false; let timer = 0; let running: number | null = null; let watching = false;
   const dirty = new Set<string>(); let subscriptions: Unsubscribe[] = [];
   const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
+  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); });
   setUsernameSaver(async value => {
     const uid = user?.uid; const version = generation;
     if (!uid || progressOwner() !== uid) return 'unavailable';
@@ -48,6 +50,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     document.querySelector('#account-guest')!.textContent = t(user ? 'accountClose' : 'accountGuest');
     document.querySelector<HTMLButtonElement>('#account-guest')!.hidden = !!user;
     document.querySelector('#storage-note')?.setAttribute('data-i18n', user ? 'accountLocalAndCloud' : 'localProgress');
+    emailUI.render(user, pendingAuth);
   }
   button.addEventListener('click', () => dialog.showModal());
   document.querySelector('#account-close')!.addEventListener('click', () => dialog.close());

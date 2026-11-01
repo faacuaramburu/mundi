@@ -44,8 +44,10 @@
           <div class="header-preferences">
           <button id="language-toggle" class="language-button" type="button">Español</button>
           <button id="theme-toggle" class="theme-button" type="button" aria-pressed="false" aria-label="Switch to dark mode" data-i18n-aria="enableDarkMode">
+            <span class="theme-icon" aria-hidden="true">
             <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" /></svg>
             <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
+            </span>
             <span id="theme-label" class="sr-only" data-i18n="darkMode">Dark mode</span>
           </button>
           <button id="account-toggle" class="account-button" type="button" aria-haspopup="dialog" aria-controls="account-dialog" hidden><svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9.25" /><circle cx="12" cy="9" r="3.1" /><path d="M4.8 17.8c1.4-2.2 3.5-3.3 5-2.7a5.5 5.5 0 0 0 4.4 0c1.5-.6 3.6.5 5 2.7" /></svg><span id="account-label">Sign in</span></button>
@@ -60,10 +62,30 @@
         <p id="account-identity" class="account-identity"></p>
         <div id="account-profile-overview" class="account-profile-overview" hidden><strong id="account-username"></strong><button id="account-edit-username" class="text-link" type="button" aria-controls="account-username-profile" aria-expanded="false" data-i18n="usernameEdit">Edit username</button></div>
         <p id="account-status" role="status" aria-live="polite"></p>
+        <p id="account-email-feedback" class="account-feedback" role="status" aria-live="polite" hidden></p>
+        <div id="account-email-panel" class="account-email-panel">
+          <form id="account-email-form" class="account-email-form">
+            <label for="account-email" data-i18n="emailLabel">Email</label>
+            <input id="account-email" name="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="254" required />
+            <div id="account-password-field" class="account-password-field">
+              <label for="account-password" data-i18n="passwordLabel">Password</label>
+              <div class="account-password-row">
+                <input id="account-password" name="password" type="password" autocomplete="current-password" maxlength="4096" aria-describedby="account-password-hint" required />
+                <button id="account-password-show" class="text-link" type="button" aria-controls="account-password" aria-pressed="false" data-i18n="passwordShow">Show</button>
+              </div>
+              <p id="account-password-hint" class="profile-note" data-i18n="passwordHint" hidden>At least 8 characters. A longer passphrase is better.</p>
+            </div>
+            <button id="account-email-submit" class="guess-button" type="submit" data-i18n="accountLogin">Sign in</button>
+          </form>
+          <button id="account-forgot-password" class="text-link" type="button" data-i18n="passwordForgot">Forgot password?</button>
+          <p class="account-auth-switch"><span id="account-email-switch-hint" data-i18n="emailNewAccount">New to Mundi?</span> <button id="account-email-switch" class="text-link" type="button" data-i18n="emailCreate">Create account</button></p>
+        </div>
         <div id="account-username-profile" data-player-profile hidden></div>
         <button id="account-cancel-username" class="text-link" type="button" data-i18n="usernameCancel" hidden>Cancel</button>
         <div class="account-actions">
-          <button id="account-login" class="guess-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
+          <span id="account-method-separator" class="account-method-separator" data-i18n="accountOr">or</span>
+          <button id="account-login" class="secondary-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
+          <button id="account-password-reset" class="text-link" type="button" data-i18n="passwordManage" hidden>Create or change password</button>
           <button id="account-logout" class="text-link" type="button" data-i18n="accountLogout" hidden>Sign out</button>
           <button id="account-retry" class="secondary-button" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
         </div>

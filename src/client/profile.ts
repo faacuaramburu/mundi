@@ -83,7 +83,8 @@ export function initializeProfile(): void {
       field.label.textContent = t(account ? 'usernameLabel' : 'profileName'); field.button.textContent = t('profileSave');
       field.input.placeholder = t(account ? 'usernamePlaceholder' : 'profilePlaceholder');
       field.input.minLength = account ? 3 : 0;
-      field.input.disabled = saving; field.button.disabled = saving || (account && (!identity.ready || identity.uid !== progressOwner()));
+      const disabled = saving || (account && (!identity.ready || identity.uid !== progressOwner()));
+      field.input.disabled = disabled; field.button.disabled = disabled;
       field.note.textContent = t(field.message === 'profileHint' && account ? identity.ready ? 'usernameHint' : 'accountLoading' : field.message);
       field.note.classList.toggle('error', ['profileInvalid', 'usernameInvalid', 'usernameTaken', 'usernameUnavailable'].includes(field.message));
     }
