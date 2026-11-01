@@ -157,7 +157,8 @@ input::placeholder { color: var(--placeholder); }
 .result-title { color: var(--ink); font-size: 1rem; font-weight: 600; }
 .round-result.success .result-title { color: var(--success-text); }
 .result-country { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--muted); }
-.result-country .country-flag { width: 24px; height: 18px; margin-right: 0; }
+.result-country-name { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+.round-result .result-country .country-flag { width: 24px; height: 18px; margin: 0; }
 .result-note { margin-top: 4px; color: var(--muted); font-size: var(--meta-size); }
 .history-section { display: flex; flex-direction: column; min-height: 0; }
 .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-block: 1px solid var(--line); padding: 24px 0 12px; }

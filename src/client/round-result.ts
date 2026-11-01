@@ -8,7 +8,10 @@ export function renderRoundResult(node: HTMLElement, country: Country, headline:
   title.className = 'result-title'; title.textContent = headline;
   const target = document.createElement('span');
   target.className = 'result-country';
-  target.append(`${t('targetWas')} `, countryFlag(country), countryName(country));
+  const name = document.createElement('span');
+  name.className = 'result-country-name';
+  name.append(countryFlag(country), countryName(country));
+  target.append(t('targetWas'), name);
   node.replaceChildren(title, target);
   if (note) {
     const detail = document.createElement('span');
@@ -16,3 +19,4 @@ export function renderRoundResult(node: HTMLElement, country: Country, headline:
     node.append(detail);
   }
 }
+
