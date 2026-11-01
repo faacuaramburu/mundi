@@ -60,6 +60,10 @@ export class Globe {
   private viewListeners = new Set<() => void>();
   private hoveredCountry: Country | null = null;
   private pointer = new Vector2();
+  private pointerClient = new Vector2();
+  private pointerKnown = false;
+  private orbitInteracting = false;
+  private globePointers = new Set<number>();
   private pointerInside = false;
   private hoverDirty = false;
   private hoverAfter = 0;
@@ -130,7 +134,10 @@ export class Globe {
       renderer.domElement.addEventListener('blur', this.clearPointerFocus);
       renderer.domElement.addEventListener('pointerdown', this.centerRotation);
       renderer.domElement.addEventListener('pointermove', this.onPointerMove);
+      renderer.domElement.addEventListener('pointerup', this.onGlobePointerUp);
+      renderer.domElement.addEventListener('pointercancel', this.onGlobePointerCancel);
       renderer.domElement.addEventListener('pointerleave', this.onPointerLeave);
+      renderer.domElement.addEventListener('wheel', this.onPointerMove, { passive: true });
       renderer.domElement.addEventListener('keydown', this.onKeyDown);
       this.host.replaceChildren(renderer.domElement);
       this.camera.position.copy(this.defaultView);
@@ -141,7 +148,8 @@ export class Globe {
       this.controls.minDistance = this.minimumDistance;
       this.controls.maxDistance = 5;
       this.controls.rotateSpeed = .65;
-      this.controls.addEventListener('start', this.stopFocus);
+      this.controls.addEventListener('start', this.onOrbitStart);
+      this.controls.addEventListener('end', this.onOrbitEnd);
       this.controls.addEventListener('change', this.onCameraChange);
       this.scene.add(new Mesh(
         new SphereGeometry(1, 128, 96),
@@ -191,19 +199,60 @@ export class Globe {
     this.flatViewport.addEventListener('pointerdown', this.onFlatPointerDown);
     this.flatViewport.addEventListener('pointermove', this.onFlatPointerMove);
     this.flatViewport.addEventListener('pointerup', this.onFlatPointerUp);
-    this.flatViewport.addEventListener('pointercancel', this.onFlatPointerUp);
-    this.map.addEventListener('pointermove', this.onPointerMove);
-    this.map.addEventListener('pointerleave', this.onPointerLeave);
+    this.flatViewport.addEventListener('pointercancel', this.onFlatPointerCancel);
+    this.flatViewport.addEventListener('lostpointercapture', this.onFlatPointerCancel);
+    this.flatViewport.addEventListener('pointerleave', this.onPointerLeave);
     this.map.addEventListener('pointerdown', this.markPointerFocus);
     this.map.addEventListener('blur', this.clearPointerFocus);
     this.map.addEventListener('keydown', this.onKeyDown);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
+    window.addEventListener('blur', this.cancelInteraction);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    document.addEventListener('scroll', this.onLayoutChange, true);
     this.resize();
     this.animate();
   }
 
   private stopFocus = (): void => { this.flight = null; };
+  private onOrbitStart = (): void => {
+    this.stopFocus();
+    this.orbitInteracting = true;
+    this.labeledCountry = null;
+    this.hoveredCountry = null;
+    this.label.hidden = true;
+  };
+  private onOrbitEnd = (): void => {
+    this.orbitInteracting = false;
+    this.hoverAfter = 0;
+    this.hoverDirty = this.pointerKnown;
+  };
+  private onVisibilityChange = (): void => {
+    if (document.hidden) this.cancelInteraction();
+  };
+  private cancelInteraction = (): void => {
+    // Release both our gesture state and OrbitControls' captured pointers on focus loss.
+    for (const pointerId of [...this.globePointers]) {
+      this.renderer?.domElement.dispatchEvent(new PointerEvent('pointercancel', { pointerId }));
+    }
+    const pointers = [...this.flatPointers.keys()];
+    this.flatPointers.clear();
+    for (const id of pointers) if (this.flatViewport.hasPointerCapture(id)) this.flatViewport.releasePointerCapture(id);
+    this.orbitInteracting = false;
+    this.onPointerLeave();
+  };
+  private onGlobePointerUp = (event: PointerEvent): void => {
+    this.globePointers.delete(event.pointerId);
+    this.onPointerMove(event);
+  };
+  private onGlobePointerCancel = (event: PointerEvent): void => {
+    this.globePointers.delete(event.pointerId);
+    this.onPointerLeave();
+  };
+  private onLayoutChange = (): void => {
+    this.labelWidth = 0;
+    this.hoverDirty = this.pointerKnown;
+  };
   private markPointerFocus = (event: PointerEvent): void => {
     (event.currentTarget as Element).setAttribute('data-pointer-focus', '');
   };
@@ -235,11 +284,11 @@ export class Globe {
       this.controls.rotateSpeed = .65 * Math.max(.12, Math.min(1, altitudeRatio));
     }
     this.dirty = true;
-    this.hoverDirty = this.pointerInside;
-    this.hoverAfter = performance.now() + 120;
+    this.hoverDirty = this.pointerKnown;
   };
 
   private centerRotation = (event: PointerEvent): void => {
+    this.globePointers.add(event.pointerId);
     if (event.button !== 0 || !this.controls) return;
     this.controls.target.set(0, 0, 0);
     this.camera.lookAt(0, 0, 0);
@@ -247,23 +296,41 @@ export class Globe {
   };
 
   private onPointerMove = (event: MouseEvent): void => {
-    const canvas = this.flat ? this.map : this.renderer?.domElement;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    if (this.flat && (event.clientX < rect.left || event.clientX > rect.right
-      || event.clientY < rect.top || event.clientY > rect.bottom)) {
+    if (event instanceof PointerEvent && event.pointerType === 'touch') {
       this.onPointerLeave();
       return;
     }
-    this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1,
-      1 - (event.clientY - rect.top) / rect.height * 2);
-    this.pointerInside = true;
+    this.pointerClient.set(event.clientX, event.clientY);
+    this.pointerKnown = true;
+    // A country shown after a guess must not reappear under an unrelated cursor.
+    this.labeledCountry = null;
+    this.refreshPointer();
     this.hoverDirty = true;
   };
 
+  private refreshPointer(): void {
+    const canvas = this.flat ? this.map : this.renderer?.domElement;
+    this.pointerInside = false;
+    if (!canvas || !this.pointerKnown) return;
+    const rect = canvas.getBoundingClientRect();
+    const { x, y } = this.pointerClient;
+    const hit = document.elementFromPoint(x, y);
+    if (rect.width <= 0 || rect.height <= 0 || x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom
+      || !hit || (hit !== canvas && !canvas.contains(hit))) {
+      this.hoveredCountry = null;
+      return;
+    }
+    this.pointer.set((x - rect.left) / rect.width * 2 - 1, 1 - (y - rect.top) / rect.height * 2);
+    this.pointerInside = true;
+  }
+
   private onPointerLeave = (): void => {
     this.pointerInside = false;
+    this.pointerKnown = false;
+    this.hoverDirty = false;
     this.hoveredCountry = null;
+    this.labeledCountry = null;
+    this.label.hidden = true;
   };
 
   private onFlatWheel = (event: WheelEvent): void => {
@@ -289,11 +356,14 @@ export class Globe {
     this.flatViewport.setPointerCapture(event.pointerId);
     this.flatPointers.set(event.pointerId, new Vector2(event.clientX, event.clientY));
     this.hoveredCountry = null;
+    this.labeledCountry = null;
+    this.label.hidden = true;
   };
 
   private onFlatPointerMove = (event: PointerEvent): void => {
     const previous = this.flatPointers.get(event.pointerId);
     if (!previous) { this.onPointerMove(event); return; }
+    this.pointerClient.set(event.clientX, event.clientY);
     const points = [...this.flatPointers.values()];
     const oldDistance = points.length === 2 ? points[0]!.distanceTo(points[1]!) : 0;
     const oldCenter = points.length === 2 ? points[0]!.clone().add(points[1]!).multiplyScalar(.5) : null;
@@ -313,7 +383,14 @@ export class Globe {
 
   private onFlatPointerUp = (event: PointerEvent): void => {
     this.flatPointers.delete(event.pointerId);
+    if (this.flatViewport.hasPointerCapture(event.pointerId)) this.flatViewport.releasePointerCapture(event.pointerId);
+    this.hoverAfter = 0;
     this.onPointerMove(event);
+  };
+
+  private onFlatPointerCancel = (event: PointerEvent): void => {
+    if (!this.flatPointers.delete(event.pointerId)) return;
+    this.onPointerLeave();
   };
 
   private layoutFlatMap(): void {
@@ -331,7 +408,7 @@ export class Globe {
     const left = (this.atlas.width - viewWidth) / 2 - this.flatPan.x / width * viewWidth;
     const top = (this.atlas.height - viewHeight) / 2 - this.flatPan.y / height * viewHeight;
     this.map.setAttribute('viewBox', `${left} ${top} ${viewWidth} ${viewHeight}`);
-    this.hoverDirty = this.pointerInside;
+    this.hoverDirty = this.pointerKnown;
     this.labelWidth = 0;
   }
 
@@ -344,9 +421,12 @@ export class Globe {
 
   private updateHover(): void {
     this.hoverDirty = false;
+    // Throttle hit tests without postponing them indefinitely during camera damping.
+    this.hoverAfter = performance.now() + 32;
     this.hoveredCountry = null;
+    this.refreshPointer();
     if (!this.pointerInside) return;
-    if (this.flatPointers.size) return;
+    if (this.flatPointers.size || this.orbitInteracting) return;
     if (this.flat) {
       const view = this.map.viewBox.baseVal;
       const mapX = view.x + (this.pointer.x + 1) / 2 * view.width;
@@ -449,7 +529,7 @@ export class Globe {
       }
       if ((!this.flight && this.controls?.update()) || this.dirty) {
         this.renderer.render(this.scene, this.camera);
-        this.hoverDirty = this.pointerInside;
+        this.hoverDirty = this.pointerKnown;
         this.dirty = false;
       }
     }
@@ -531,9 +611,10 @@ export class Globe {
     flat = flat || !this.renderer;
     const country = this.labeledCountry;
     this.stopFocus();
+    this.cancelInteraction();
     this.flat = flat;
     this.onPointerLeave();
-    if (flat) this.labeledCountry = null;
+    if (this.controls) this.controls.enabled = !flat;
     if (this.renderer) this.renderer.domElement.hidden = flat;
     if (flat) {
       this.map.setAttribute('class', 'flat-map');
@@ -546,7 +627,7 @@ export class Globe {
       this.flatViewport.remove();
     }
     setTranslatedText(document.querySelector('#globe-help')!, flat ? 'mapHelp' : 'help');
-    if (country) this.focusCountry(country);
+    if (country) { this.focusCountry(country); this.labeledCountry = null; }
     this.dirty = true;
     this.updateLabel();
     for (const listener of this.viewListeners) listener();
@@ -593,6 +674,10 @@ export class Globe {
   }
 
   private updateLabel(): void {
+    if (this.orbitInteracting || this.flatPointers.size || document.hidden) {
+      this.label.hidden = true;
+      return;
+    }
     if (!this.labeledCountry && !this.hoveredCountry) {
       this.label.hidden = true;
       return;
@@ -639,7 +724,8 @@ export class Globe {
 
   private disposeRenderer(): void {
     this.stopFocus();
-    this.controls?.removeEventListener('start', this.stopFocus);
+    this.controls?.removeEventListener('start', this.onOrbitStart);
+    this.controls?.removeEventListener('end', this.onOrbitEnd);
     this.controls?.removeEventListener('change', this.onCameraChange);
     this.controls?.dispose();
     this.renderer?.domElement.removeEventListener('webglcontextlost', this.onContextLost);
@@ -647,13 +733,20 @@ export class Globe {
     this.renderer?.domElement.removeEventListener('blur', this.clearPointerFocus);
     this.renderer?.domElement.removeEventListener('pointerdown', this.centerRotation);
     this.renderer?.domElement.removeEventListener('pointermove', this.onPointerMove);
+    this.renderer?.domElement.removeEventListener('pointerup', this.onGlobePointerUp);
+    this.renderer?.domElement.removeEventListener('pointercancel', this.onGlobePointerCancel);
     this.renderer?.domElement.removeEventListener('pointerleave', this.onPointerLeave);
+    this.renderer?.domElement.removeEventListener('wheel', this.onPointerMove);
     this.renderer?.domElement.removeEventListener('keydown', this.onKeyDown);
     this.renderer?.dispose();
     this.renderer = null;
   }
 
   dispose(): void {
+    this.cancelInteraction();
+    window.removeEventListener('blur', this.cancelInteraction);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    document.removeEventListener('scroll', this.onLayoutChange, true);
     this.viewListeners.clear();
     cancelAnimationFrame(this.frame);
     this.resizeObserver.disconnect();
@@ -668,3 +761,4 @@ export class Globe {
     });
   }
 }
+
