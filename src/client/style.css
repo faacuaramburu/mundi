@@ -310,7 +310,12 @@ select:disabled { opacity: .5; }
 .daily-home-icon { line-height: 1.5; }
 .daily-panel { margin-bottom: 24px; }
 .daily-panel h2 { font-size: 1.35rem; margin: 0 0 8px; }
-.daily-panel > .text-link { display: inline-block; margin-top: 12px; }
+.daily-result-buttons { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+.daily-result-buttons .secondary-button { display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; }
+@media (max-width: 480px) {
+  .daily-result-buttons { gap: 8px; }
+  .daily-result-buttons .secondary-button { flex: 1 1 0; min-width: 0; padding-inline: 10px; }
+}
 .daily-countdown { font-variant-numeric: tabular-nums; font-size: 1rem; }
 .daily-share-text { display: block; width: 100%; min-height: 110px; margin-top: 12px; padding: 12px; color: var(--ink); background: var(--field); border: 1px solid var(--field-border); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

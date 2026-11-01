@@ -14,7 +14,7 @@ const messages = {
   dailyUnavailable: ['Could not load the daily challenge. Please try again.', 'No se pudo cargar el desafío diario. Volvé a intentarlo.'],
   dailyStorage: ['Progress could not be saved. Keep this page open to finish your challenge.', 'No se pudo guardar el avance. Mantené esta página abierta para terminar el desafío.'],
   dailyShareText: ['Result to copy', 'Resultado para copiar'],
-  freePlay: ['Free play', 'Juego libre'],
+  keepPlaying: ['Keep playing', 'Seguí jugando'],
   indexOrder: ['Sort countries', 'Ordenar países'],
   indexAlphabetical: ['Alphabetical', 'Alfabéticamente'],
   indexNewest: ['Recently added first', 'Más recientes primero'],
