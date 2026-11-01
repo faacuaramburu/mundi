@@ -101,7 +101,10 @@
             <div data-player-profile></div>
             <a id="home-resume" class="secondary-button resume-room" data-i18n="resumeRoom" hidden>Return to your game</a>
             <nav class="home-choices" aria-label="Game modes" data-i18n-aria="welcome">
-              <a href="/?play=solo" class="home-choice"><span><strong data-i18n="singleplayer">Singleplayer</strong><small data-i18n="soloDescription">Find a country at your own pace.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
+              <div class="home-singleplayer">
+                <a href="/?play=solo" class="home-choice"><span><strong data-i18n="singleplayer">Singleplayer</strong><small data-i18n="soloDescription">Find a country at your own pace.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
+                <a id="daily-home-link" class="daily-home-link" href="/?play=daily"><span class="daily-home-icon" aria-hidden="true">◉</span><span><strong data-i18n="dailyTitle">Daily challenge</strong><small id="daily-home-status">…</small></span></a>
+              </div>
               <a href="/?play=multi" class="home-choice"><span><strong data-i18n="multiplayer">Multiplayer</strong><small data-i18n="multiDescription">Private games for 2–4 friends.</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
             </nav>
             <a href="/?view=index" class="home-index"><span data-i18n="countryIndex">Country index</span><span id="home-count">0 / 195</span></a>
@@ -161,6 +164,15 @@
             <button id="reconnect-button" class="secondary-button" type="button" data-i18n="retry" hidden>Reconnect</button>
             <div class="session-links"><a href="/" class="text-link" data-i18n="leaveRoom">Leave room</a><a href="/?view=index" class="text-link" data-i18n="indexOpen">Explore your collection</a></div>
           </section>
+          <section id="daily-panel" class="daily-panel" aria-labelledby="daily-title" hidden>
+            <h2 id="daily-title" data-i18n="dailyTitle">Daily challenge</h2>
+            <p id="daily-date" class="room-rule"></p>
+            <p id="daily-streak" class="room-rule"></p>
+            <p id="daily-countdown" class="daily-countdown" hidden></p>
+            <p id="daily-storage" class="room-rule" data-i18n="dailyStorage" hidden>Progress could not be saved. Keep this page open to finish your challenge.</p>
+            <div id="daily-result-actions" hidden><button id="daily-share" class="secondary-button" type="button" data-i18n="dailyShare">Share result</button><label for="daily-share-text" class="sr-only" data-i18n="dailyShareText">Result to copy</label><textarea id="daily-share-text" class="daily-share-text" readonly hidden></textarea></div>
+            <a class="text-link" href="/?play=solo" data-i18n="freePlay">Free play</a>
+          </section>
           <form id="guess-form" class="guess-form" autocomplete="off" hidden>
             <label for="country-input" data-i18n="explore">Country</label>
             <div class="input-row">
@@ -188,3 +200,4 @@
     </div>
   </body>
 </html>
+

@@ -6,6 +6,7 @@ import type { Config } from './config.js';
 import { loadGeography } from './geography.js';
 import { hashCredential, RoomError, Rooms } from './rooms.js';
 import { playerNameLimit } from '../shared/profile.js';
+import { registerDaily } from './daily.js';
 
 const cookieName = 'mundi-session';
 const roomParams = { type: 'object', required: ['id'], additionalProperties: false,
@@ -72,6 +73,7 @@ export async function registerMultiplayer(app: FastifyInstance, config: Config, 
       if (request.headers.origin !== config.origin) throw new RoomError('FORBIDDEN', 403);
     }
   });
+  registerDaily(app, loadGeography());
   app.post<{ Body: Rules & { name?: string } }>('/api/rooms', { schema: { querystring: empty, body: {
     type: 'object', required: ['mode', 'quota'], additionalProperties: false,
     properties: { mode: { type: 'string', enum: ['free', 'limited'] }, quota: { type: 'integer', enum: [5, 8, 10, 15] },
@@ -162,3 +164,4 @@ export async function registerMultiplayer(app: FastifyInstance, config: Config, 
     for (const connection of sockets) connection.socket.terminate();
   });
 }
+

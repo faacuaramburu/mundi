@@ -2,6 +2,19 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  dailyTitle: ['Daily challenge', 'Desafío diario'],
+  dailyAvailable: ['Challenge available · Play →', 'Desafío disponible · Jugar →'],
+  dailyResume: ['Challenge in progress · Continue →', 'Desafío en curso · Continuar →'],
+  dailyNext: ['New challenge in', 'Nuevo desafío en'],
+  dailyCompleted: ['Daily challenge completed', 'Desafío diario completado'],
+  dailyRule: ['The same country for everyone. Resets at 00:00 UTC.', 'El mismo país para todos. Se renueva a las 00:00 UTC.'],
+  dailyShare: ['Share result', 'Compartir resultado'],
+  dailyNotSolved: ['Country not found today', 'Hoy no encontré el país'],
+  dailyStreak: ['Daily streak', 'Racha diaria'],
+  dailyUnavailable: ['Could not load the daily challenge. Please try again.', 'No se pudo cargar el desafío diario. Volvé a intentarlo.'],
+  dailyStorage: ['Progress could not be saved. Keep this page open to finish your challenge.', 'No se pudo guardar el avance. Mantené esta página abierta para terminar el desafío.'],
+  dailyShareText: ['Result to copy', 'Resultado para copiar'],
+  freePlay: ['Free play', 'Juego libre'],
   indexOrder: ['Sort countries', 'Ordenar países'],
   indexAlphabetical: ['Alphabetical', 'Alfabéticamente'],
   indexNewest: ['Recently added first', 'Más recientes primero'],
@@ -260,3 +273,4 @@ export function initializeLanguage(): void {
     for (const listener of listeners) listener();
   });
 }
+

@@ -11,6 +11,7 @@ import { initializeProfile } from './profile.js';
 import { initializeFaq } from './faq.js';
 import { initializeMotion } from './motion.js';
 import { initializeAnalytics } from './analytics.js';
+import { initializeDailyCard } from './daily.js';
 
 initializeLanguage();
 initializeTheme();
@@ -66,9 +67,13 @@ async function initializeGame(): Promise<Globe> {
   const collection = createCollection(atlas);
   document.querySelector('#home-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;
   if (isHome) {
+    initializeDailyCard(atlas);
     setTranslatedText(document.querySelector('#mode-label')!, 'welcome');
   } else if (params.get('view') === 'index' && !params.has('room')) {
     showIndex(atlas, globe, collection);
+  } else if (params.get('play') === 'daily' && !params.has('room')) {
+    const { startDaily } = await import('./daily.js');
+    await startDaily(atlas, globe, collection);
   } else if (import.meta.env.DEV && !params.has('room') && (params.has('practice') || params.has('target'))) {
     document.querySelector<HTMLElement>('.history-section')!.hidden = false;
     const { startPractice } = await import('./practice.js');
@@ -103,3 +108,4 @@ try {
 } catch {
   if (status) setTranslatedText(status, 'unavailable');
 }
+
