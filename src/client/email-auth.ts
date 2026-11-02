@@ -75,12 +75,12 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     try { await action(); } catch (cause) { notice(authError(cause), true); }
     finally { setPending(false); }
   }
-  async function reset(address: string): Promise<void> {
+  async function reset(address: string, knownAccount = false): Promise<void> {
     try { await sendPasswordResetEmail(auth, address); }
     catch (cause) {
-      if (!(cause && typeof cause === 'object' && 'code' in cause && cause.code === 'auth/user-not-found')) throw cause;
+      if (knownAccount || !(cause && typeof cause === 'object' && 'code' in cause && cause.code === 'auth/user-not-found')) throw cause;
     }
-    notice('passwordResetSent');
+    notice(knownAccount ? 'passwordResetSentAccount' : 'passwordResetSent');
   }
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -114,7 +114,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
   });
   forgot.addEventListener('click', () => switchMode('reset'));
   show.addEventListener('click', () => { password.type = password.type === 'password' ? 'text' : 'password'; render(user, pending); });
-  manage.addEventListener('click', () => { if (user?.email) { const address = user.email; void run(() => reset(address)); } });
+  manage.addEventListener('click', () => { if (user?.email) { const address = user.email; void run(() => reset(address, true)); } });
   find<HTMLDialogElement>('account-dialog').addEventListener('close', () => { agreement.checked = false; password.value = ''; password.type = 'password'; message = null; render(user, pending); });
   return { render };
 }
