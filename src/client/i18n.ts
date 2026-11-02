@@ -39,7 +39,7 @@ const messages = {
   passwordSendLink: ['Send reset link', 'Enviar enlace'],
   passwordResetSent: ['If this email has an account, you will receive a link to create or reset its password. Check your inbox and spam folder.', 'Si ese correo tiene una cuenta, vas a recibir un enlace para crear o cambiar su contraseña. Revisá tu bandeja y spam.'],
   passwordResetSentAccount: ['We sent you an email with a link to create or change your password. Check your inbox and spam folder.', 'Te enviamos un correo con un enlace para crear o cambiar tu contraseña. Revisá tu bandeja de entrada y spam.'],
-  passwordManage: ['Create or change password', 'Crear o cambiar contraseña'],
+  passwordManage: ['Change password', 'Cambiar contraseña'],
   passwordWeak: ['Use a password with at least 8 characters.', 'Usá una contraseña de al menos 8 caracteres.'],
   emailCreate: ['Create account', 'Crear cuenta'],
   emailCreateTitle: ['Create your account', 'Creá tu cuenta'],
