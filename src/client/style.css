@@ -140,21 +140,40 @@ input { caret-color: var(--ink); }
   .legal-page .legal-topbar { display: flex; gap: 16px; padding-inline: 20px; }
   .legal-document { padding-inline: 20px; }
 }
-.account-email-panel { margin-top: 24px; }
+.account-dialog:not([data-signed-in]) .account-heading { border: 0; padding-bottom: 0; margin-bottom: 12px; }
+.account-dialog:not([data-signed-in]) #account-status { font-size: var(--meta-size); }
+.account-auth-methods { margin-top: 16px; }
+.account-auth-tabs { display: flex; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.account-auth-tabs button { flex: 1; min-height: 44px; padding: 10px 8px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; color: var(--muted); font-size: var(--meta-size); font-weight: 600; }
+.account-auth-tabs button[aria-selected='true'] { border-bottom-color: var(--ink); color: var(--ink); }
+.account-auth-tabs button:hover { color: var(--ink); }
+.account-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: var(--control-height); padding: 10px 12px; border: 1px solid #747775; border-radius: var(--control-radius); background: #fff; color: #1f1f1f; font-size: var(--meta-size); font-weight: 600; }
+.account-google:hover { background: #f2f2f2; }
+.account-google img { flex-shrink: 0; object-fit: contain; }
+.account-email-panel { margin-top: 16px; }
+.account-reset-hint { margin: 0 0 20px; color: var(--muted); font-size: var(--meta-size); }
 .account-email-form { display: grid; gap: 8px; }
 .account-email-form label { font-weight: 600; font-size: var(--meta-size); }
 .account-email-form input { width: 100%; min-width: 0; min-height: var(--control-height); padding: 10px 12px; border: 1px solid var(--field-border); border-radius: var(--control-radius); background: var(--field); color: var(--ink); font-size: 1rem; }
-.account-password-field { margin-top: 12px; }
-.account-password-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
-.account-dialog .account-password-row .text-link { flex-shrink: 0; margin: 0; }
+.account-password-field { margin-top: 4px; }
+.account-password-label { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 8px; min-height: 44px; }
+.account-dialog .account-password-label .text-link { margin: 0; padding-block: 8px; font-size: .8125rem; }
+.account-password-row { position: relative; }
+.account-password-row input { padding-right: 48px; }
+.account-password-show { position: absolute; inset: 2px 2px 2px auto; display: grid; place-items: center; width: 44px; padding: 10px; border: 0; border-radius: var(--control-radius); background: transparent; color: var(--muted); }
+.account-password-show:hover { color: var(--ink); background: var(--secondary-hover); }
+.account-password-show svg { width: 20px; height: 20px; }
+.account-eye-slash { visibility: hidden; }
+.account-password-show[aria-pressed='true'] .account-eye-slash { visibility: visible; }
 .account-email-form .guess-button { margin-top: 12px; min-height: var(--control-height); font-size: 1rem; }
-.account-auth-switch { margin: 12px 0 0; color: var(--muted); font-size: var(--meta-size); }
-.account-dialog .account-auth-switch .text-link { margin: 0 0 0 6px; }
+.account-email-form .account-legal { margin-block: 8px 0; }
+.account-email-form .account-legal p { margin-bottom: 0; }
 .account-feedback { color: var(--success-text); font-size: var(--meta-size); margin: 16px 0 0; }
 .account-feedback.error { color: var(--error-text); }
-.account-method-separator { width: 100%; color: var(--muted); text-align: center; font-size: var(--meta-size); }
-.account-dialog:not([data-signed-in]) .account-actions { border: 0; margin-top: 8px; padding: 0; }
-#account-login { width: 100%; }
+.account-method-separator { display: flex; align-items: center; gap: 12px; margin-top: 16px; color: var(--muted); font-size: var(--meta-size); }
+.account-method-separator::before, .account-method-separator::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.account-dialog:not([data-signed-in]) .account-actions { display: none; }
+.account-dialog #account-guest { display: block; margin: 8px auto 0; text-align: center; }
 .account-dialog[data-signed-in] .account-actions { align-items: center; justify-content: space-between; }
 .account-icon { transition: transform 160ms cubic-bezier(.16, 1, .3, 1); }
 .account-button:is(:hover, :focus-visible) .account-icon { transform: scale(1.08); }

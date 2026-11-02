@@ -12,6 +12,9 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
   const password = find<HTMLInputElement>('account-password');
   const submit = find<HTMLButtonElement>('account-email-submit');
   const change = find<HTMLButtonElement>('account-email-switch');
+  const signin = find<HTMLButtonElement>('account-email-signin-tab');
+  const back = find<HTMLButtonElement>('account-email-back');
+  const tabs = [signin, change];
   const forgot = find<HTMLButtonElement>('account-forgot-password');
   const show = find<HTMLButtonElement>('account-password-show');
   const manage = find<HTMLButtonElement>('account-password-reset');
@@ -25,8 +28,16 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     if (next?.uid !== user?.uid) { password.value = ''; password.type = 'password'; mode = 'signin'; message = null; }
     user = next; pending = busy;
     panel.hidden = !!user;
-    find('account-status').hidden = !user && mode !== 'signin';
-    find('account-method-separator').hidden = !!user;
+    find('account-status').hidden = !user && mode === 'reset';
+    find('account-auth-methods').hidden = !!user || mode === 'reset';
+    find('account-reset-hint').hidden = mode !== 'reset';
+    back.hidden = mode !== 'reset';
+    panel.setAttribute('role', mode === 'reset' ? 'region' : 'tabpanel');
+    panel.setAttribute('aria-labelledby', mode === 'reset' ? 'account-title' : mode === 'signin' ? signin.id : change.id);
+    for (const tab of tabs) {
+      const selected = tab === (mode === 'signup' ? change : signin);
+      tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1;
+    }
     manage.hidden = !user?.email; manage.disabled = pending;
     find('account-password-field').hidden = mode === 'reset';
     password.required = mode !== 'reset'; password.disabled = pending || mode === 'reset';
@@ -35,14 +46,12 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     find('account-password-hint').hidden = mode !== 'signup';
     find('account-signup-legal').hidden = mode !== 'signup';
     agreement.required = mode === 'signup' && !user; agreement.disabled = pending || mode !== 'signup' || !!user;
-    show.textContent = t(password.type === 'password' ? 'passwordShow' : 'passwordHide');
+    show.setAttribute('aria-label', t(password.type === 'password' ? 'passwordShow' : 'passwordHide'));
     show.setAttribute('aria-pressed', String(password.type === 'text'));
-    for (const control of [email, submit, change, forgot, show]) control.disabled = pending;
+    for (const control of [email, submit, change, signin, back, forgot, show]) control.disabled = pending;
     form.setAttribute('aria-busy', String(pending));
     submit.textContent = t(pending ? 'emailWorking' : mode === 'signup' ? 'emailCreate' : mode === 'reset' ? 'passwordSendLink' : 'accountLogin');
     forgot.hidden = mode !== 'signin';
-    find('account-email-switch-hint').textContent = mode === 'reset' ? '' : t(mode === 'signin' ? 'emailNewAccount' : 'emailHaveAccount');
-    change.textContent = t(mode === 'signin' ? 'emailCreate' : 'emailBackToSignIn');
     feedback.hidden = !message; feedback.textContent = message ? t(message) : '';
     feedback.classList.toggle('error', error);
     if (!user) find('account-title').textContent = t(mode === 'signup' ? 'emailCreateTitle' : mode === 'reset' ? 'passwordResetTitle' : 'accountLogin');
@@ -89,11 +98,20 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
       } else { await signInWithEmailAndPassword(auth, address, value); password.value = ''; }
     });
   });
-  function switchMode(next: typeof mode): void {
-    if (pending) return;
-    mode = next; message = null; agreement.checked = false; password.value = ''; password.type = 'password'; render(user, pending); email.focus();
+  function switchMode(next: typeof mode, focusEmail = true): void {
+    if (pending || mode === next) return;
+    mode = next; message = null; agreement.checked = false; password.value = ''; password.type = 'password'; render(user, pending);
+    if (focusEmail) email.focus();
   }
-  change.addEventListener('click', () => switchMode(mode === 'signin' ? 'signup' : 'signin'));
+  signin.addEventListener('click', () => switchMode('signin', false));
+  change.addEventListener('click', () => switchMode('signup', false));
+  back.addEventListener('click', () => switchMode('signin'));
+  find('account-auth-tabs').addEventListener('keydown', event => {
+    if (pending || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const target = event.key === 'Home' ? signin : event.key === 'End' ? change : mode === 'signin' ? change : signin;
+    switchMode(target === signin ? 'signin' : 'signup', false); target.focus();
+  });
   forgot.addEventListener('click', () => switchMode('reset'));
   show.addEventListener('click', () => { password.type = password.type === 'password' ? 'text' : 'password'; render(user, pending); });
   manage.addEventListener('click', () => { if (user?.email) { const address = user.email; void run(() => reset(address)); } });

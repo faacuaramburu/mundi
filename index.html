@@ -63,15 +63,24 @@
         <div id="account-profile-overview" class="account-profile-overview" hidden><strong id="account-username"></strong><button id="account-edit-username" class="text-link" type="button" aria-controls="account-username-profile" aria-expanded="false" data-i18n="usernameEdit">Edit username</button></div>
         <p id="account-status" role="status" aria-live="polite"></p>
         <p id="account-email-feedback" class="account-feedback" role="status" aria-live="polite" hidden></p>
-        <div id="account-email-panel" class="account-email-panel">
+        <div id="account-auth-methods" class="account-auth-methods">
+          <div id="account-auth-tabs" class="account-auth-tabs" role="tablist" aria-label="Account access" data-i18n-aria="accountAccess">
+            <button id="account-email-signin-tab" type="button" role="tab" aria-controls="account-email-panel" aria-selected="true" data-i18n="accountLogin">Sign in</button>
+            <button id="account-email-switch" type="button" role="tab" aria-controls="account-email-panel" aria-selected="false" tabindex="-1" data-i18n="emailCreate">Create account</button>
+          </div>
+          <button id="account-login" class="account-google" type="button"><img src="/google-g.png" width="20" height="20" alt="" /><span data-i18n="accountGoogle">Continue with Google</span></button>
+          <span id="account-method-separator" class="account-method-separator" data-i18n="accountOr">or with email</span>
+        </div>
+        <div id="account-email-panel" class="account-email-panel" role="tabpanel" aria-labelledby="account-email-signin-tab">
+          <p id="account-reset-hint" class="account-reset-hint" data-i18n="passwordResetHint" hidden>Enter your email and we’ll send you a reset link.</p>
           <form id="account-email-form" class="account-email-form">
             <label for="account-email" data-i18n="emailLabel">Email</label>
             <input id="account-email" name="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="254" required />
             <div id="account-password-field" class="account-password-field">
-              <label for="account-password" data-i18n="passwordLabel">Password</label>
+              <div class="account-password-label"><label for="account-password" data-i18n="passwordLabel">Password</label><button id="account-forgot-password" class="text-link" type="button" data-i18n="passwordForgot">Forgot password?</button></div>
               <div class="account-password-row">
                 <input id="account-password" name="password" type="password" autocomplete="current-password" maxlength="4096" aria-describedby="account-password-hint" required />
-                <button id="account-password-show" class="text-link" type="button" aria-controls="account-password" aria-pressed="false" data-i18n="passwordShow">Show</button>
+                <button id="account-password-show" class="account-password-show" type="button" aria-controls="account-password" aria-pressed="false" aria-label="Show password" data-i18n-aria="passwordShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /><path class="account-eye-slash" d="m3 3 18 18" /></svg></button>
               </div>
               <p id="account-password-hint" class="profile-note" data-i18n="passwordHint" hidden>At least 8 characters. A longer passphrase is better.</p>
             </div>
@@ -81,8 +90,7 @@
             </div>
             <button id="account-email-submit" class="guess-button" type="submit" data-i18n="accountLogin">Sign in</button>
           </form>
-          <button id="account-forgot-password" class="text-link" type="button" data-i18n="passwordForgot">Forgot password?</button>
-          <p class="account-auth-switch"><span id="account-email-switch-hint" data-i18n="emailNewAccount">New to Mundi?</span> <button id="account-email-switch" class="text-link" type="button" data-i18n="emailCreate">Create account</button></p>
+          <button id="account-email-back" class="text-link" type="button" data-i18n="emailBackToSignIn" hidden>Back to sign in</button>
         </div>
         <section id="account-agreement" class="account-legal" hidden>
           <p id="account-agreement-note" role="status" aria-live="polite"></p>
@@ -96,8 +104,6 @@
         <div id="account-username-profile" data-player-profile hidden></div>
         <button id="account-cancel-username" class="text-link" type="button" data-i18n="usernameCancel" hidden>Cancel</button>
         <div class="account-actions">
-          <span id="account-method-separator" class="account-method-separator" data-i18n="accountOr">or</span>
-          <button id="account-login" class="secondary-button" type="button" data-i18n="accountGoogle">Continue with Google</button>
           <button id="account-password-reset" class="text-link" type="button" data-i18n="passwordManage" hidden>Create or change password</button>
           <button id="account-logout" class="text-link" type="button" data-i18n="accountLogout" hidden>Sign out</button>
           <button id="account-retry" class="secondary-button" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
