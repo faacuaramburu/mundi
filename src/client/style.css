@@ -132,6 +132,13 @@ input { caret-color: var(--ink); }
 .legal-document p { line-height: 1.65; overflow-wrap: anywhere; }
 .legal-page-footer { margin-top: auto; padding: 16px 32px; border-top: 1px solid var(--line); }
 .legal-page-footer .legal-links { justify-content: center; }
+.email-action { width: min(100%, 480px); margin: 64px auto; padding-inline: 24px; font-size: 1rem; }
+.email-action h1 { margin: 0 0 16px; font-size: 1.75rem; line-height: 1.2; }
+.email-action #email-action-status { margin: 0 0 24px; color: var(--muted); line-height: 1.6; }
+.email-action #email-action-status.error { color: var(--error-text); }
+.email-action .profile-note { margin: 0 0 12px; }
+.email-action #email-action-home { display: block; margin-top: 24px; }
+.email-action #email-action-retry { margin-top: 8px; }
 @media (max-width: 800px) {
   :root { --footer-height: 104px; }
   .globe-footer { gap: 0 16px; }
@@ -139,6 +146,7 @@ input { caret-color: var(--ink); }
   .globe-footer .server-status { margin-left: auto; }
   .legal-page .legal-topbar { display: flex; gap: 16px; padding-inline: 20px; }
   .legal-document { padding-inline: 20px; }
+  .email-action { margin-block: 40px; }
 }
 .account-dialog:not([data-signed-in]) .account-heading { border: 0; padding-bottom: 0; margin-bottom: 12px; }
 .account-dialog:not([data-signed-in]) #account-status { font-size: var(--meta-size); }

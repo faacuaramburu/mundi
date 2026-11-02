@@ -21,7 +21,11 @@ The web API key is public app configuration. Do not put service-account credenti
 
 Firebase Authentication owns password credentials and hashing. Passwords are not saved in Firestore, local storage, game analytics, or application logs. The password field is cleared after successful sign-in, registration, mode changes, and dialog close. Standard password-manager autocomplete and a Show/Hide control are available.
 
-Registration sends an address-verification email; players can continue playing while they verify. Reset requests show the same confirmation for existing and unknown addresses. Firebase's hosted action page handles verification and password reset; retain its default Firebase callback URL unless a separate action handler is implemented.
+Registration sends an address-verification email; players can continue playing while they verify. Reset requests show the same confirmation for existing and unknown addresses.
+
+Account email links use `https://mundi.top/cuenta/accion.html`. The page handles verification, password resets, email recovery and the other supported Firebase account action codes with the existing Firebase SDK. It validates codes against the project's runtime configuration, never trusts a query-supplied project/API key or redirect URL, and removes action parameters from the address bar after reading them. Password reset requires a valid code and two matching passwords, and does not sign in automatically. Error, expired/used-code and connection-retry states are available in English and Spanish, with both site themes.
+
+Deploy the action page before changing Authentication → Templates → Customize action URL (the project setting `notification.sendEmail.callbackUri`) to that address. This changes future emails; messages already sent retain their original links and continue using the previous hosted handler. Keep Google sign-in's `/__/auth/handler` separate from email action links.
 
 Signed-in Google users can request **Create or change password**. Completing the email link sets a password on that same Firebase account rather than creating a second player. The unique game username is a public display name, not a login identifier. Sign-in uses Google or email/password.
 

@@ -10,5 +10,5 @@ export default defineConfig({
       '/api': { target: 'http://127.0.0.1:3000', ws: true },
     },
   },
-  build: { outDir: 'dist/client', sourcemap: false, rolldownOptions: { input: ['index.html', 'privacy.html', 'terms.html', 'contact.html'] } },
+  build: { outDir: 'dist/client', sourcemap: false, rolldownOptions: { input: ['index.html', 'privacy.html', 'terms.html', 'contact.html', 'cuenta/accion.html'] } },
 });

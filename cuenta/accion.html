@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Tu cuenta | Mundi</title>
+    <link id="mundi-favicon" rel="icon" type="image/svg+xml" href="/favicon-light.svg" />
+    <link rel="stylesheet" href="/src/client/style.css" />
+    <script src="/theme.js"></script>
+    <script type="module" src="/src/client/email-action.ts"></script>
+  </head>
+  <body class="legal-page">
+    <div class="app-shell">
+      <header class="topbar legal-topbar">
+        <a class="brand" href="/" aria-label="Mundi"><img class="brand-symbol" src="/mundi.svg" alt="" /><span class="brand-wordmark">mundi</span></a>
+        <div class="legal-preferences">
+          <button id="language-toggle" class="language-button" type="button">English</button>
+          <button id="theme-toggle" class="theme-button" type="button" aria-pressed="false" aria-label="Cambiar tema">
+            <span class="theme-icon" aria-hidden="true">
+              <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.2 15.5A8.5 8.5 0 0 1 8.5 3.8 8.5 8.5 0 1 0 20.2 15.5Z" /></svg>
+              <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
+            </span><span id="theme-label" class="sr-only" data-i18n="darkMode">Modo oscuro</span>
+          </button>
+        </div>
+      </header>
+      <main class="email-action">
+        <h1 id="email-action-title">Tu cuenta</h1>
+        <p id="email-action-status" role="status" aria-live="polite">Comprobando el enlace…</p>
+        <form id="email-action-form" class="account-email-form" hidden>
+          <label for="new-password" id="new-password-label">Nueva contraseña</label>
+          <div class="account-password-row">
+            <input id="new-password" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="4096" aria-describedby="new-password-hint" required />
+            <button id="email-action-show" class="account-password-show" type="button" aria-controls="new-password confirm-password" aria-pressed="false" aria-label="Mostrar contraseña"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /><path class="account-eye-slash" d="m3 3 18 18" /></svg></button>
+          </div>
+          <p id="new-password-hint" class="profile-note" data-i18n="passwordHint">Mínimo 8 caracteres. Una frase larga es mejor.</p>
+          <label for="confirm-password" id="confirm-password-label">Repetí la contraseña</label>
+          <input id="confirm-password" name="confirm-password" type="password" autocomplete="new-password" minlength="8" maxlength="4096" required />
+          <button id="email-action-submit" class="guess-button" type="submit">Guardar contraseña</button>
+        </form>
+        <button id="email-action-retry" class="text-link" type="button" hidden>Volver a intentar</button>
+        <a id="email-action-home" class="text-link" href="/">Volver a Mundi</a>
+        <noscript><p>Activá JavaScript para verificar tu correo o cambiar tu contraseña. Enable JavaScript to verify your email or reset your password.</p></noscript>
+      </main>
+      <footer class="legal-page-footer"><nav class="legal-links" aria-label="Legal"><a href="/privacy.html" data-i18n="legalPrivacy">Privacidad</a><a href="/terms.html" data-i18n="legalTerms">Términos</a><a href="/contact.html" data-i18n="legalContact">Contacto</a></nav></footer>
+    </div>
+  </body>
+</html>
