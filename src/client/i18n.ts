@@ -56,6 +56,8 @@ const messages = {
   accountTitle: ['Your account', 'Tu cuenta'],
   accountSaveTitle: ['Save your discoveries', 'Guardá tus descubrimientos'],
   accountLoading: ['Loading your account…', 'Cargando tu cuenta…'],
+  accountUnavailable: ['Could not connect to your account. You can keep playing and try again.', 'No se pudo conectar con tu cuenta. Podés seguir jugando y reintentar.'],
+  accountLoadRetry: ['Try again', 'Reintentar'],
   accountGuestHint: ['Keep your discoveries and daily progress with you on any device.', 'Guardá tus descubrimientos y desafíos para seguir en cualquier dispositivo.'],
   accountProfileHint: ['Your friends see this nickname. It syncs with your account.', 'Tus amigos ven este nombre. Se sincroniza con tu cuenta.'],
   accountSyncing: ['Saving your progress…', 'Guardando tu progreso…'],

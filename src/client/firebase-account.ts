@@ -8,7 +8,7 @@ import type { FirebaseWebConfig } from '../shared/account.js';
 import { dayLength } from '../shared/daily.js';
 import { normalizePlayerName } from '../shared/profile.js';
 import type { Message } from './i18n.js';
-import { onLanguageChange, t } from './i18n.js';
+import { onLanguageChange, setTranslatedText, t } from './i18n.js';
 import { importGuestProgress, readAccountProgress, storeAccountProgress, validDailyDay } from './account-progress.js';
 import { progressOwner, setProgressOwner } from './progress-storage.js';
 import { normalizeUsername } from '../shared/username.js';
@@ -39,19 +39,20 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); }, uid => agreement.record(uid), customEmail);
   setUsernameSaver(async value => {
     const uid = user?.uid; const version = generation;
-    if (!uid || progressOwner() !== uid) return 'unavailable';
+    if (!activated || !uid || progressOwner() !== uid) return 'unavailable';
     const result = await claimUsername(db, uid, value);
     return generation === version && user?.uid === uid ? result : 'unavailable';
   });
   function render(): void {
-    button.hidden = false; button.disabled = status === 'accountLoading';
+    dialog.toggleAttribute('data-account-loading', status === 'accountLoading');
+    dialog.setAttribute('aria-busy', String(status === 'accountLoading'));
     const accountLabel = t(user ? 'accountTitle' : 'accountLogin');
     const label = document.querySelector<HTMLElement>('#account-label')!;
-    label.textContent = accountLabel; label.classList.toggle('sr-only', !!user);
+    setTranslatedText(label, user ? 'accountTitle' : 'accountLogin');
     button.setAttribute('aria-label', accountLabel); button.title = accountLabel;
     document.querySelector('#account-title')!.textContent = t(user ? 'accountTitle' : 'accountSaveTitle');
     document.querySelector('#account-identity')!.textContent = user?.email ?? '';
-    document.querySelector('#account-status')!.textContent = t(status);
+    setTranslatedText(document.querySelector('#account-status')!, status);
     dialog.toggleAttribute('data-signed-in', !!user);
     login.hidden = !!user; logout.hidden = !user;
     login.disabled = pendingAuth; logout.disabled = pendingAuth;
@@ -62,12 +63,8 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     emailUI.render(user, pendingAuth);
     if (user && !activated) document.querySelector<HTMLElement>('#account-status')!.hidden = true;
   }
-  button.addEventListener('click', () => dialog.showModal());
-  document.querySelector('#account-close')!.addEventListener('click', () => dialog.close());
-  document.querySelector('#account-guest')!.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
   function queue(key: string): void {
-    if (!user || progressOwner() !== user.uid) return;
+    if (!activated || !user || progressOwner() !== user.uid) return;
     dirty.add(key); status = 'accountSyncing'; render(); clearTimeout(timer);
     timer = window.setTimeout(() => { void flush(); }, 600);
   }
@@ -112,7 +109,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     }, failed));
   }
   async function flush(): Promise<void> {
-    if (!user || progressOwner() !== user.uid || running === generation || !dirty.size) return;
+    if (!activated || !user || progressOwner() !== user.uid || running === generation || !dirty.size) return;
     const uid = user.uid; const version = generation;
     const active = () => generation === version && user?.uid === uid && progressOwner() === uid;
     running = version; const keys = new Set(dirty); dirty.clear(); status = 'accountSyncing'; render();
@@ -214,7 +211,9 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     generation++; activated = false; clearTimeout(timer); for (const stop of subscriptions) stop(); subscriptions = []; watching = false; dirty.clear();
     user = next;
     setAccountIdentity(next?.uid ?? null, null, false);
-    setProgressOwner(null);
+    // Restoring the same account keeps its local colors while consent/cloud checks run.
+    // Switching identities still clears the previous account immediately.
+    if (!next || progressOwner() !== next.uid) setProgressOwner(null);
     status = next ? 'legalAccountNotice' : 'accountGuestHint'; render(); agreement.check(next?.uid ?? null);
   }, () => { status = 'accountLoginError'; render(); });
   onLanguageChange(render); render();

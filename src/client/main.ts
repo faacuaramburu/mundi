@@ -35,6 +35,12 @@ void fetch('/mundi.svg').then(async response => {
 
 const params = new URLSearchParams(location.search);
 const isHome = !params.has('room') && !params.has('play') && !params.has('view') && !(import.meta.env.DEV && (params.has('practice') || params.has('target')));
+setTranslatedText(document.querySelector('#mode-label')!, isHome ? 'welcome'
+  : params.has('room') ? 'privateGame'
+    : params.get('view') === 'index' ? 'countryIndex'
+      : params.get('play') === 'daily' ? 'dailyTitle'
+        : params.get('play') === 'solo' ? 'singleplayer'
+          : import.meta.env.DEV && (params.has('practice') || params.has('target')) ? 'practice' : 'multiplayer');
 if (isHome || params.get('play') === 'multi') {
   void fetch('/api/rooms/resume', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(5000) })
     .then(async response => {
@@ -53,10 +59,16 @@ if (isHome) {
   document.querySelector<HTMLElement>('.legend')!.hidden = true;
 }
 
-async function initializeGame(): Promise<Globe> {
+async function loadAtlas(): Promise<Atlas> {
   const mapResponse = await fetch(atlasUrl, { signal: AbortSignal.timeout(20000) });
   if (!mapResponse.ok) throw new Error('Map data unavailable');
-  const atlas = await mapResponse.json() as Atlas;
+  return await mapResponse.json() as Atlas;
+}
+const atlasReady = loadAtlas();
+void initializeAccount(atlasReady);
+
+async function initializeGame(): Promise<Globe> {
+  const atlas = await atlasReady;
   const host = document.querySelector<HTMLElement>('#globe-host');
   if (!host) throw new Error('Globe host unavailable');
   const globe = new Globe(host, atlas);
@@ -66,7 +78,6 @@ async function initializeGame(): Promise<Globe> {
   }
 
   const collection = createCollection(atlas);
-  void initializeAccount(atlas);
   document.querySelector('#home-count')!.textContent = `${collection.ids.size} / ${atlas.countries.length}`;
   if (isHome) {
     const updateHomeCollection = () => {
@@ -77,7 +88,6 @@ async function initializeGame(): Promise<Globe> {
     const unsubscribe = collection.subscribe(updateHomeCollection);
     if (import.meta.hot) import.meta.hot.dispose(unsubscribe);
     initializeDailyCard(atlas);
-    setTranslatedText(document.querySelector('#mode-label')!, 'welcome');
   } else if (params.get('view') === 'index' && !params.has('room')) {
     showIndex(atlas, globe, collection);
   } else if (params.get('play') === 'daily' && !params.has('room')) {

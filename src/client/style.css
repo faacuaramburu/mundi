@@ -90,6 +90,8 @@ input { caret-color: var(--ink); }
 .header-actions .theme-button { padding: 10px; }
 .account-dialog { position: fixed; width: min(480px, calc(100% - 32px)); max-height: calc(100svh - 32px); padding: 28px 32px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--paper); color: var(--ink); font-size: 1rem; }
 .account-dialog::backdrop { background: rgb(0 0 0 / .55); }
+.account-dialog[data-account-loading] :is(.account-auth-methods, .account-email-panel, .account-actions) { display: none; }
+.account-dialog #account-load-retry { margin-top: 20px; }
 .account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px; }
 .account-dialog h2 { font-size: 1.5rem; line-height: 1.2; margin: 0; }
 .account-close { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; margin: -6px -12px -6px 0; padding: 10px; border: 0; background: transparent; color: var(--muted); }

@@ -36,7 +36,7 @@
           <span id="brand-mark" aria-hidden="true"><img class="brand-symbol" src="/mundi.svg" alt="" /></span>
           <span class="brand-wordmark">mundi</span>
         </a>
-        <h1 id="mode-label" class="mode-label">Mundi</h1>
+        <h1 id="mode-label" class="mode-label" data-i18n="welcome">Choose how to play</h1>
         <nav class="header-actions" aria-label="Navigation" data-i18n-aria="navigation">
           <div class="header-links">
           <button id="faq-toggle" class="header-faq" type="button" aria-controls="country-faq" aria-expanded="false" aria-label="FAQ" data-i18n-aria="faq">FAQ</button>
@@ -50,18 +50,19 @@
             </span>
             <span id="theme-label" class="sr-only" data-i18n="darkMode">Dark mode</span>
           </button>
-          <button id="account-toggle" class="account-button" type="button" aria-haspopup="dialog" aria-controls="account-dialog" hidden><svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9.25" /><circle cx="12" cy="9" r="3.1" /><path d="M4.8 17.8c1.4-2.2 3.5-3.3 5-2.7a5.5 5.5 0 0 0 4.4 0c1.5-.6 3.6.5 5 2.7" /></svg><span id="account-label">Sign in</span></button>
+          <button id="account-toggle" class="account-button" type="button" aria-label="Sign in" aria-haspopup="dialog" aria-controls="account-dialog"><svg class="account-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9.25" /><circle cx="12" cy="9" r="3.1" /><path d="M4.8 17.8c1.4-2.2 3.5-3.3 5-2.7a5.5 5.5 0 0 0 4.4 0c1.5-.6 3.6.5 5 2.7" /></svg><span id="account-label" class="sr-only" data-i18n="accountLogin">Sign in</span></button>
           </div>
         </nav>
       </header>
-      <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title">
+      <dialog id="account-dialog" class="account-dialog" aria-labelledby="account-title" aria-busy="true" data-account-loading>
         <div class="account-heading">
           <h2 id="account-title" data-i18n="accountSaveTitle">Save your discoveries</h2>
           <button id="account-close" class="account-close" type="button" aria-label="Close" data-i18n-aria="accountClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
         </div>
         <p id="account-identity" class="account-identity"></p>
         <div id="account-profile-overview" class="account-profile-overview" hidden><strong id="account-username"></strong><button id="account-edit-username" class="text-link" type="button" aria-controls="account-username-profile" aria-expanded="false" data-i18n="usernameEdit">Edit username</button></div>
-        <p id="account-status" role="status" aria-live="polite"></p>
+        <p id="account-status" role="status" aria-live="polite" data-i18n="accountLoading">Loading your account…</p>
+        <button id="account-load-retry" class="secondary-button" type="button" data-i18n="accountLoadRetry" hidden>Try again</button>
         <p id="account-email-feedback" class="account-feedback" role="status" aria-live="polite" hidden></p>
         <div id="account-auth-methods" class="account-auth-methods">
           <div id="account-auth-tabs" class="account-auth-tabs" role="tablist" aria-label="Account access" data-i18n-aria="accountAccess">
