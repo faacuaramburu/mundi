@@ -46,6 +46,17 @@ describe('Firebase sign-in helper proxy', () => {
       expect(fetcher).not.toHaveBeenCalled();
     } finally { await app.close(); }
   });
+  it('routes the conventional email action path to Mundi without changing one-time codes or trusting continue URLs', async () => {
+    const app = Fastify(); const fetcher = vi.fn<typeof fetch>();
+    await registerFirebaseAuth(app, loadConfig({ APP_ORIGIN: 'https://mundi.top', FIREBASE_WEB_CONFIG: JSON.stringify(firebase) }), fetcher);
+    try {
+      const query = '?mode=verifyEmail&oobCode=example%2Bcode&continueUrl=https%3A%2F%2Fexample.test';
+      const response = await app.inject('/__/auth/action' + query);
+      expect(response.statusCode).toBe(302); expect(response.headers.location).toBe('/cuenta/accion.html' + query);
+      expect(response.headers['cache-control']).toBe('no-store'); expect(fetcher).not.toHaveBeenCalled();
+      expect((await app.inject({ method: 'POST', url: '/__/auth/action' })).statusCode).toBe(404);
+    } finally { await app.close(); }
+  });
   it('fails closed when Firebase is unavailable and stays absent without account configuration', async () => {
     const app = Fastify();
     await registerFirebaseAuth(app, loadConfig({ FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, authDomain: 'demo-mundi.firebaseapp.com' }) }), vi.fn<typeof fetch>().mockRejectedValue(new Error('private upstream detail')));

@@ -9,6 +9,11 @@ export async function registerFirebaseAuth(app: FastifyInstance, config: Config,
   if (!config.firebase) return;
   const upstream = `https://${config.firebase.projectId}.firebaseapp.com`;
   app.register(async scope => {
+    scope.get('/__/auth/action', async (request, reply) => {
+      const query = request.url.indexOf('?');
+      reply.header('Cache-Control', 'no-store'); reply.header('X-Robots-Tag', 'noindex, nofollow');
+      return reply.redirect(`/cuenta/accion.html${query < 0 ? '' : request.url.slice(query)}`, 302);
+    });
     // The helper checks the same public web configuration used by the game.
     // This project does not deploy Firebase Hosting's generated init.json.
     scope.get('/__/firebase/init.json', async (_request, reply) => {
