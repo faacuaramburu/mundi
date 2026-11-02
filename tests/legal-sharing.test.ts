@@ -23,18 +23,18 @@ beforeEach(() => {
   } });
 });
 afterEach(() => vi.unstubAllGlobals());
-it('defaults an existing account with no agreement to private', async () => {
+it('defaults an existing account with no agreement to public', async () => {
   const accepted = vi.fn(); const flow = initializeLegalAgreement({} as Firestore, accepted);
   flow.check('old-player'); await Promise.resolve();
-  expect(elements.get('#account-agreement-public-index')!.checked).toBe(false);
-  await flow.record('old-player'); expect(accepted).toHaveBeenCalledWith('old-player', false);
+  expect(elements.get('#account-agreement-public-index')!.checked).toBe(true);
+  await flow.record('old-player'); expect(accepted).toHaveBeenCalledWith('old-player', true);
 });
 it('offers public sharing for a new Google account, while allowing opt-out', async () => {
   const accepted = vi.fn(); const flow = initializeLegalAgreement({} as Firestore, accepted);
-  flow.check('new-player'); flow.newAccount('new-player'); await Promise.resolve();
+  flow.check('new-player'); await Promise.resolve();
   const sharing = elements.get('#account-agreement-public-index')!;
   expect(sharing.checked).toBe(true);
-  sharing.checked = false; sharing.dispatchEvent(new Event('change')); flow.newAccount('new-player');
+  sharing.checked = false; sharing.dispatchEvent(new Event('change'));
   expect(sharing.checked).toBe(false);
   await flow.record('new-player', sharing.checked);
   expect(accepted).toHaveBeenCalledWith('new-player', false);
@@ -46,4 +46,11 @@ it('retains the original registration choice across verification and retries', a
   await flow.record('new-player', false);
   expect(accepted).toHaveBeenLastCalledWith('new-player', true);
   expect(store.writes).toEqual([]);
+});
+it('uses the public default for old agreements without a preference and preserves explicit opt-outs', async () => {
+  const accepted = vi.fn(); const flow = initializeLegalAgreement({} as Firestore, accepted);
+  store.prior = {}; flow.check('old-player'); await Promise.resolve();
+  expect(accepted).toHaveBeenLastCalledWith('old-player', true);
+  store.prior = { publicIndex: false }; flow.check('private-player'); await Promise.resolve();
+  expect(accepted).toHaveBeenLastCalledWith('private-player', false);
 });

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAdditionalUserInfo, getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { collection, doc, getDocs, getFirestore, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import type { Unsubscribe } from 'firebase/firestore';
@@ -17,6 +17,7 @@ import { claimUsername } from './username-account.js';
 import { initializeEmailAuth } from './email-auth.js';
 import { initializeLegalAgreement } from './legal-agreement.js';
 import { initializePublicSharing } from './public-profile.js';
+import { publicIndexPreference } from '../shared/public-profile.js';
 
 export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet<string>, customEmail = false): void {
   const app = initializeApp(config); const auth = getAuth(app); const db = getFirestore(app);
@@ -30,9 +31,9 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   const dirty = new Set<string>(); let subscriptions: Unsubscribe[] = [];
   const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
   let activated = false;
-  let publicIndexDefault = false;
+  let publicIndexDefault = true;
   const sharing = initializePublicSharing(db, ids, () => activated ? user?.uid ?? null : null);
-  const agreement = initializeLegalAgreement(db, (uid, publicIndex = false) => {
+  const agreement = initializeLegalAgreement(db, (uid, publicIndex = true) => {
     if (user?.uid !== uid || !user.emailVerified || activated) return;
     activated = true;
     publicIndexDefault = publicIndex;
@@ -181,7 +182,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
           const timestamp = typeof remoteTime === 'number' && remoteTime >= 0 && remoteTime <= Date.now() ? remoteTime : 0;
           const useLocal = !username && (local.nameUpdatedAt > timestamp || (!remoteName && !!local.name));
           const next = { name: useLocal ? local.name : remoteName, nameUpdatedAt: useLocal ? local.nameUpdatedAt : timestamp };
-          tx.set(ref, { ...next, ...(!remote.exists() ? { publicIndex: publicIndexDefault } : {}), createdAt: remote.data()?.createdAt ?? serverTimestamp(), lastSeenAt: serverTimestamp() }, { merge: true });
+          tx.set(ref, { ...next, publicIndex: publicIndexPreference(remote.data()?.publicIndex ?? publicIndexDefault), createdAt: remote.data()?.createdAt ?? serverTimestamp(), lastSeenAt: serverTimestamp() }, { merge: true });
           return next;
         });
         if (!active()) return;
@@ -208,9 +209,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   login.addEventListener('click', () => {
     if (pendingAuth) return;
     pendingAuth = true; render();
-    void signInWithPopup(auth, provider).then(result => {
-      if (getAdditionalUserInfo(result)?.isNewUser) agreement.newAccount(result.user.uid);
-    }).catch(error => {
+    void signInWithPopup(auth, provider).catch(error => {
       const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
       status = code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' ? 'accountGuestHint' : code === 'auth/popup-blocked' ? 'accountPopupBlocked' : 'accountLoginError';
     }).finally(() => { pendingAuth = false; render(); });
@@ -220,7 +219,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     void signOut(auth).catch(() => { status = 'accountLoginError'; }).finally(() => { pendingAuth = false; render(); });
   });
   onAuthStateChanged(auth, next => {
-    sharing.reset(); publicIndexDefault = false;
+    sharing.reset(); publicIndexDefault = true;
     generation++; activated = false; clearTimeout(timer); for (const stop of subscriptions) stop(); subscriptions = []; watching = false; dirty.clear();
     user = next;
     setAccountIdentity(next?.emailVerified ? next.uid : null, null, false);

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Firestore } from 'firebase/firestore';
-import { publicCountries, publicProfilePath } from '../src/shared/public-profile.js';
+import { publicCountries, publicProfilePath, publicIndexPreference } from '../src/shared/public-profile.js';
 
 const fixture = vi.hoisted(() => ({ records: new Map<string, unknown>(), writes: [] as unknown[], deletes: [] as string[] }));
 vi.mock('firebase/firestore', () => ({
@@ -20,12 +20,17 @@ beforeEach(() => {
   fixture.records.set('players/alice/progress/collection', { discoveries: { BRA: 123456, ARG: null } });
 });
 describe('public index boundaries', () => {
+  it('defaults missing preferences to public while preserving an explicit private choice', () => {
+    expect(publicIndexPreference(undefined)).toBe(true);
+    expect(publicIndexPreference(true)).toBe(true);
+    expect(publicIndexPreference(false)).toBe(false);
+  });
   it('normalizes public links and rejects invalid names', () => {
     expect(publicProfilePath('Alice_Name')).toBe('/?profile=alice_name');
     expect(publicProfilePath('../x')).toBeNull();
     expect(publicCountries(['CHE', 'BRA', 'BRA', 'BAD'], ids)).toEqual(['BRA', 'CHE']);
   });
-  it('keeps old profiles private when their sharing flag is absent', async () => {
+  it('waits for an explicitly enabled canonical profile before publishing a snapshot', async () => {
     await publishPublicIndex(db, 'alice', ids);
     expect(fixture.writes).toEqual([]);
   });

@@ -1,6 +1,7 @@
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import { legalVersion } from '../shared/legal.js';
+import { publicIndexPreference } from '../shared/public-profile.js';
 import { onLanguageChange, t } from './i18n.js';
 import type { Message } from './i18n.js';
 
@@ -8,14 +9,11 @@ import type { Message } from './i18n.js';
 export function initializeLegalAgreement(db: Firestore, accepted: (uid: string, publicIndex?: boolean) => void): {
   check: (uid: string | null) => void;
   record: (uid: string, publicIndex?: boolean) => Promise<void>;
-  newAccount: (uid: string) => void;
 } {
   const panel = document.querySelector<HTMLElement>('#account-agreement')!;
   const form = document.querySelector<HTMLFormElement>('#account-agreement-form')!;
   const checkbox = document.querySelector<HTMLInputElement>('#account-agreement-check')!;
   const sharing = document.querySelector<HTMLInputElement>('#account-agreement-public-index')!;
-  const newAccounts = new Set<string>();
-  let sharingEdited = false;
   const submit = document.querySelector<HTMLButtonElement>('#account-agreement-submit')!;
   const retry = document.querySelector<HTMLButtonElement>('#account-agreement-retry')!;
   const note = document.querySelector<HTMLElement>('#account-agreement-note')!;
@@ -30,24 +28,24 @@ export function initializeLegalAgreement(db: Firestore, accepted: (uid: string, 
     note.textContent = t(message); note.classList.toggle('error', message === 'legalSaveError');
     form.setAttribute('aria-busy', String(pending));
   }
-  async function record(owner: string, publicIndex = false): Promise<void> {
+  async function record(owner: string, publicIndex = true): Promise<void> {
     // Preserve the original server timestamp on retries and other devices.
     const visible = await runTransaction(db, async tx => {
       const previous = await tx.get(ref(owner));
       if (!previous.exists()) tx.set(ref(owner), { version: legalVersion, acceptedAt: serverTimestamp(), publicIndex });
-      return previous.exists() ? previous.data()?.publicIndex === true : publicIndex;
+      return previous.exists() ? publicIndexPreference(previous.data()?.publicIndex) : publicIndex;
     });
     if (uid !== owner) return;
     generation++; waiting = false; pending = false; render(); accepted(owner, visible);
   }
   function check(owner: string | null): void {
     uid = owner; const version = ++generation; waiting = !!owner; pending = !!owner;
-    checkbox.checked = false; sharing.checked = !!owner && newAccounts.has(owner); sharingEdited = false; message = 'legalChecking'; render();
+    checkbox.checked = false; sharing.checked = true; message = 'legalChecking'; render();
     if (!owner) return;
     void getDoc(ref(owner)).then(result => {
       if (generation !== version || uid !== owner) return;
       pending = false;
-      if (result.exists()) { waiting = false; render(); accepted(owner, result.data()?.publicIndex === true); }
+      if (result.exists()) { waiting = false; render(); accepted(owner, publicIndexPreference(result.data()?.publicIndex)); }
       else { message = 'legalAccountNotice'; render(); document.querySelector<HTMLDialogElement>('#account-dialog')!.showModal(); }
     }).catch(() => { if (generation === version) { pending = false; message = 'legalSaveError'; render(); } });
   }
@@ -58,6 +56,5 @@ export function initializeLegalAgreement(db: Firestore, accepted: (uid: string, 
   });
   retry.addEventListener('click', () => check(uid));
   onLanguageChange(render);
-  sharing.addEventListener('change', () => { sharingEdited = true; });
-  return { check, record, newAccount(owner) { newAccounts.add(owner); if (uid === owner && !sharingEdited) { sharing.checked = true; render(); } } };
+  return { check, record };
 }
