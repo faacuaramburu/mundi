@@ -27,13 +27,9 @@ Play without an account and keep your discoveries, daily attempts and optional g
 
 Sign in with Google or create an account with an email and password to merge existing guest progress into your account and synchronize discoveries and daily challenges across devices. Each account has its own local cache; switching accounts keeps their progress separate.
 
-Email registration requires at least 8 password characters and sends an email verification link. Account emails are delivered by Resend with links to `mundi.top`; Firebase validates the verification and password reset codes. Existing Google players can use **Change password** inside their account to add password access to the same email and keep their UID and progress. Firebase Authentication manages password hashing; passwords are never written to Firestore, game storage, or server logs.
-
 Choose a unique username with 3–24 characters and at least three letters. Names start with a letter, allow a–z, numbers and underscores, and are saved in lowercase. The profile icon opens your account; this is the single place to edit a signed-in username. The icon is available while the account loads, and restoring the same session keeps cached discoveries visible during synchronization. Guest display names remain optional on the home and multiplayer screens.
 
 Public [Terms](https://mundi.top/terms.html), [Privacy](https://mundi.top/privacy.html), and [Contact](https://mundi.top/contact.html) pages are available in English and Spanish. Email registration requires an unchecked Terms acceptance box. Google and existing accounts accept the current version before account progress is imported or synced. Firestore records the version and server timestamp in a private immutable agreement document. Guest play remains available without creating an account; accepting the Terms does not authorize personalized advertising.
-
-Firebase project owners can see accounts in Authentication and usernames in Firestore under `players/{uid}`. See [Firebase setup and data model](docs/FIREBASE.md) for configuration and access rules.
 
 The live site uses Cloudflare Web Analytics for aggregate traffic and performance statistics.
 
