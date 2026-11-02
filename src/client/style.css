@@ -592,7 +592,21 @@ select:disabled { opacity: .5; }
 .account-public-profile { border-top: 1px solid var(--line); padding-top: 16px; }
 .public-profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
 .public-profile-actions .text-link { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
-.player-search { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
-.player-search label { display: block; margin-bottom: 8px; font-size: var(--meta-size); color: var(--muted); }
+.topbar:has(.header-player-search) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 360px) minmax(0, 1fr); gap: 24px; }
+.header-identity { display: flex; align-items: center; gap: 24px; min-width: 0; }
+.header-player-search { display: flex; align-items: center; min-width: 0; width: 100%; border: 1px solid var(--field-border); border-radius: var(--control-radius); background: var(--field); }
+.header-player-search:focus-within { border-color: var(--focus); }
+.header-player-search input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 0 10px 14px; border: 0; border-radius: var(--control-radius); color: var(--ink); background: transparent; font-size: var(--meta-size); }
+.header-player-search button { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 10px; border: 0; border-radius: var(--control-radius); background: transparent; color: var(--muted); }
+.header-player-search button:hover { color: var(--ink); background: var(--secondary-hover); }
+.header-player-search svg { width: 20px; height: 20px; }
+.topbar:has(.header-player-search) .header-actions { justify-self: end; margin: 0; }
+@media (max-width: 1100px) {
+  :root { --header-height: 116px; }
+  .topbar:has(.header-player-search) { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; }
+  .header-player-search { grid-column: 1 / -1; grid-row: 2; max-width: 480px; justify-self: center; }
+  .topbar:has(.header-player-search) .header-actions { grid-column: 2; grid-row: 1; gap: 8px; }
+  .topbar:has(.header-player-search) .header-preferences { padding-left: 8px; gap: 4px; }
+}
 .public-index .index-tools > div:last-child { display: none; }
 .profile-unavailable :is(#index-count, .index-views, #index-progress, #storage-note, .index-tools, #index-date-note, #index-empty, #index-countries, .index-play) { display: none; }

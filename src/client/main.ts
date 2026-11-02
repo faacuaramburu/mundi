@@ -13,11 +13,13 @@ import { initializeMotion } from './motion.js';
 import { initializeAnalytics } from './analytics.js';
 import { initializeDailyCard } from './daily.js';
 import { initializeAccount } from './account.js';
+import { initializePlayerSearch } from './player-search.js';
 
 initializeLanguage();
 initializeTheme();
 initializeHistoryOrder();
 initializeProfile();
+initializePlayerSearch();
 initializeFaq();
 initializeMotion();
 initializeAnalytics();

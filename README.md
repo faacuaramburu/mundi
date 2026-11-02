@@ -19,7 +19,7 @@ Enter a country name and select a suggestion. Colors and approximate distances g
 
 ## Your country index
 
-Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Search by name, filter by continent or discovery status, and sort by discovery date. The home globe highlights the countries you have found and rotates slowly. Open the index from the home screen. Find another player by username from **Players**, or share a public profile link. New accounts can opt out of public sharing during registration; existing accounts stay private until their owner enables it in the account dialog. Public profiles show discovered countries, with no email, discovery dates or daily history.
+Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Search by name, filter by continent or discovery status, and sort by discovery date. The home globe highlights the countries you have found and rotates slowly. Open the index from the home screen. Find another player by username using the search field in the header, or share a public profile link. New accounts can opt out of public sharing during registration; existing accounts stay private until their owner enables it in the account dialog. Public profiles show discovered countries, with no email, discovery dates or daily history.
 
 ## Optional accounts
 

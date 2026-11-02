@@ -2,7 +2,7 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
-  players: ['Players', 'Jugadores'],
+  searchPlayers: ['Search players', 'Buscar jugadores'],
   playerProfile: ['Player profile', 'Perfil de jugador'],
   findPlayer: ['Find a player by username', 'Buscá un jugador por su usuario'],
   viewProfile: ['View profile', 'Ver perfil'],
@@ -346,6 +346,10 @@ function render(): void {
   for (const node of document.querySelectorAll('[data-i18n-aria]')) {
     const key = node.getAttribute('data-i18n-aria');
     if (key && Object.hasOwn(messages, key)) node.setAttribute('aria-label', t(key as Message));
+  }
+  for (const node of document.querySelectorAll('[data-i18n-placeholder]')) {
+    const key = node.getAttribute('data-i18n-placeholder');
+    if (key && Object.hasOwn(messages, key)) node.setAttribute('placeholder', t(key as Message));
   }
   document.querySelector('#country-input')?.setAttribute('placeholder', t('placeholder'));
   const button = document.querySelector('#language-toggle');
