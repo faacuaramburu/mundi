@@ -34,9 +34,10 @@ void fetch('/mundi.svg').then(async response => {
 }).catch(() => { /* The same static image remains visible if inline motion is unavailable. */ });
 
 const params = new URLSearchParams(location.search);
-const isHome = !params.has('room') && !params.has('play') && !params.has('view') && !(import.meta.env.DEV && (params.has('practice') || params.has('target')));
+const isHome = !params.has('room') && !params.has('play') && !params.has('view') && !params.has('profile') && !(import.meta.env.DEV && (params.has('practice') || params.has('target')));
 setTranslatedText(document.querySelector('#mode-label')!, isHome ? 'welcome'
   : params.has('room') ? 'privateGame'
+    : params.has('profile') ? 'playerProfile'
     : params.get('view') === 'index' ? 'countryIndex'
       : params.get('play') === 'daily' ? 'dailyTitle'
         : params.get('play') === 'solo' ? 'singleplayer'
@@ -73,7 +74,7 @@ async function initializeGame(): Promise<Globe> {
   if (!host) throw new Error('Globe host unavailable');
   const globe = new Globe(host, atlas);
   document.querySelector('#reset-view')?.addEventListener('click', () => globe.resetView());
-  if (!isHome && !(params.get('view') === 'index' && !params.has('room'))) {
+  if (!isHome && !(!params.has('room') && (params.get('view') === 'index' || params.has('profile')))) {
     initializeMapView(globe, document.querySelector<HTMLElement>('#game-map-views')!, 'mundi-game-view');
   }
 
@@ -88,6 +89,9 @@ async function initializeGame(): Promise<Globe> {
     const unsubscribe = collection.subscribe(updateHomeCollection);
     if (import.meta.hot) import.meta.hot.dispose(unsubscribe);
     initializeDailyCard(atlas);
+  } else if (params.has('profile') && !params.has('room')) {
+    const { showPlayerIndex } = await import('./player-index.js');
+    await showPlayerIndex(atlas, globe, params.get('profile') ?? '');
   } else if (params.get('view') === 'index' && !params.has('room')) {
     showIndex(atlas, globe, collection);
   } else if (params.get('play') === 'daily' && !params.has('room')) {

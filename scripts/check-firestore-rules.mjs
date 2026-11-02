@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp, writeBatch, collection, getDocs, deleteDoc } from 'firebase/firestore';
 
 // This command must never contact a deployed project or a non-loopback endpoint.
 const endpoint = /^(?:127\.0\.0\.1|localhost):(\d{1,5})$/.exec(process.env.FIRESTORE_EMULATOR_HOST ?? '');
@@ -50,5 +50,36 @@ try {
   await allowed(setDoc(doc(google, 'players/google-player/agreements/2026-11-01'), agreement));
   await allowed(setDoc(doc(google, 'players/google-player'), profile('google_player')));
   await allowed(setDoc(doc(google, 'players/google-player/progress/collection'), progress));
-  console.log(`Firestore rules: ${checks} checks passed (pending, verified, Google, consent and cross-account isolation).`);
+  const anonymous = env.unauthenticatedContext().firestore();
+  const publicRef = db => doc(db, 'publicProfiles/alice');
+  const publicData = countries => ({ username: 'alice_name', countries, updatedAt: serverTimestamp() });
+  // Old profiles without a sharing flag remain private.
+  await denied(getDoc(doc(anonymous, 'usernames/alice_name')));
+  await denied(setDoc(publicRef(verified), publicData(['BRA'])));
+  await denied(getDocs(collection(anonymous, 'usernames')));
+  await denied(getDocs(collection(anonymous, 'publicProfiles')));
+  const publish = writeBatch(verified);
+  publish.update(doc(verified, 'players/alice'), { publicIndex: true, lastSeenAt: serverTimestamp() });
+  publish.set(publicRef(verified), publicData(['BRA']));
+  await allowed(publish.commit());
+  await allowed(getDoc(doc(anonymous, 'usernames/alice_name')));
+  await allowed(getDoc(publicRef(anonymous)));
+  await denied(getDoc(doc(anonymous, 'players/alice/progress/collection')));
+  await denied(setDoc(publicRef(verified), publicData(['BRA', 'ARG'])));
+  await denied(setDoc(publicRef(verified), { ...publicData(['BRA']), username: 'someone_else' }));
+  await denied(setDoc(publicRef(verified), { ...publicData(['BRA']), email: 'private@example.test' }));
+  await denied(setDoc(publicRef(other), publicData(['BRA'])));
+  await denied(setDoc(publicRef(pending), publicData(['BRA'])));
+  await denied(deleteDoc(publicRef(other)));
+  // The canonical flag revokes access even while a stale snapshot still exists.
+  await allowed(setDoc(doc(verified, 'players/alice'), { publicIndex: false, lastSeenAt: serverTimestamp() }, { merge: true }));
+  await denied(getDoc(publicRef(anonymous)));
+  await denied(getDoc(doc(anonymous, 'usernames/alice_name')));
+  await allowed(deleteDoc(publicRef(verified)));
+  await allowed(getDoc(publicRef(verified)));
+  await denied(getDocs(collection(other, 'publicProfiles')));
+  const newcomer = env.authenticatedContext('new-player', { email_verified: false }).firestore();
+  await allowed(setDoc(doc(newcomer, 'players/new-player/agreements/2026-11-01'), { ...agreement, publicIndex: true }));
+  await denied(setDoc(doc(newcomer, 'players/new-player/agreements/2026-11-01'), { ...agreement, publicIndex: false }));
+  console.log(`Firestore rules: ${checks} checks passed (verification, consent, isolation and public profile privacy).`);
 } finally { await env.cleanup(); }

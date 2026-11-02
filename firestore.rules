@@ -24,7 +24,8 @@ service cloud.firestore {
       allow read: if owns(uid) && verified();
       allow create, update: if accepted(uid)
         && request.resource.data.keys().hasAll(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
-        && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt', 'username'])
+        && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt', 'username', 'publicIndex'])
+        && (!request.resource.data.keys().hasAny(['publicIndex']) || request.resource.data.publicIndex is bool)
         && usernameMatches(uid)
         && request.resource.data.name is string && request.resource.data.name.size() <= 24
         && request.resource.data.nameUpdatedAt is number && request.resource.data.nameUpdatedAt >= 0
@@ -55,12 +56,17 @@ service cloud.firestore {
         allow read: if owns(uid);
         allow create: if owns(uid) && version == '2026-11-01'
           && request.resource.data.keys().hasAll(['version', 'acceptedAt'])
-          && request.resource.data.keys().hasOnly(['version', 'acceptedAt'])
+          && request.resource.data.keys().hasOnly(['version', 'acceptedAt', 'publicIndex'])
+          && (!request.resource.data.keys().hasAny(['publicIndex']) || request.resource.data.publicIndex is bool)
           && request.resource.data.version == version && request.resource.data.acceptedAt == request.time;
       }
     }
+    function published(uid, username) {
+      let player = get(/databases/$(database)/documents/players/$(uid)).data;
+      return player.get('publicIndex', false) == true && player.username == username;
+    }
     match /usernames/{username} {
-      allow get: if verified();
+      allow get: if verified() || published(resource.data.uid, username);
       allow create: if request.auth != null && accepted(request.auth.uid) && validUsername(username)
         && request.resource.data.keys().hasAll(['uid', 'createdAt'])
         && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
@@ -69,6 +75,24 @@ service cloud.firestore {
       allow delete: if verified() && resource.data.uid == request.auth.uid
         && validUsername(getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username)
         && getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username != username;
+    }
+    function publicCountriesMatch(uid, countries) {
+      let path = /databases/$(database)/documents/players/$(uid)/progress/collection;
+      return (!existsAfter(path) && countries.size() == 0)
+        || (existsAfter(path) && countries.toSet() == getAfter(path).data.discoveries.keys().toSet());
+    }
+    match /publicProfiles/{uid} {
+      allow get: if (owns(uid) && verified()) || published(uid, resource.data.username);
+      allow create, update: if accepted(uid)
+        && request.resource.data.keys().hasAll(['username', 'countries', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['username', 'countries', 'updatedAt'])
+        && validUsername(request.resource.data.username)
+        && getAfter(/databases/$(database)/documents/players/$(uid)).data.publicIndex == true
+        && getAfter(/databases/$(database)/documents/players/$(uid)).data.username == request.resource.data.username
+        && request.resource.data.countries is list && request.resource.data.countries.size() <= 195
+        && publicCountriesMatch(uid, request.resource.data.countries)
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if owns(uid) && verified();
     }
     // No public player directory, global reads, or client-side administration.
     match /{document=**} { allow read, write: if false; }

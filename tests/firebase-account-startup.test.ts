@@ -16,7 +16,7 @@ vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(),
   GoogleAuthProvider: class { setCustomParameters() {} },
   onAuthStateChanged: (_auth: unknown, next: (user: User | null) => void) => { auth.changed = next; },
-  signInWithPopup: vi.fn(), signOut: vi.fn(),
+  getAdditionalUserInfo: vi.fn(), signInWithPopup: vi.fn(), signOut: vi.fn(),
 }));
 vi.mock('firebase/firestore', () => ({
   getFirestore: vi.fn(), getDocs: auth.getDocs, runTransaction: auth.transaction,
@@ -26,9 +26,10 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('../src/client/legal-agreement.js', () => ({
   initializeLegalAgreement: (_db: unknown, accepted: (uid: string) => void) => {
     auth.accepted = accepted;
-    return { check: auth.checkAgreement, record: vi.fn() };
+    return { check: auth.checkAgreement, record: vi.fn(), newAccount: vi.fn() };
   },
 }));
+vi.mock('../src/client/public-profile.js', () => ({ initializePublicSharing: () => ({ queue: vi.fn(), reset: vi.fn(), update: vi.fn() }) }));
 vi.mock('../src/client/email-auth.js', () => ({ initializeEmailAuth: (_auth: unknown, _pending: unknown, _registered: unknown, _custom: unknown, verified: (user: User) => void) => {
   auth.verified = verified;
   return { render: vi.fn(), refreshVerification: vi.fn() };

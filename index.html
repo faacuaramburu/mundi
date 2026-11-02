@@ -39,6 +39,7 @@
         <h1 id="mode-label" class="mode-label" data-i18n="welcome">Choose how to play</h1>
         <nav class="header-actions" aria-label="Navigation" data-i18n-aria="navigation">
           <div class="header-links">
+          <a class="header-faq" href="/?view=index#player-search" data-i18n="players">Players</a>
           <button id="faq-toggle" class="header-faq" type="button" aria-controls="country-faq" aria-expanded="false" aria-label="FAQ" data-i18n-aria="faq">FAQ</button>
           </div>
           <div class="header-preferences">
@@ -93,6 +94,7 @@
             <div id="account-signup-legal" class="account-legal" hidden>
               <label class="legal-checkbox"><input id="account-signup-agree" name="terms" type="checkbox" /><span><span data-i18n="legalAccept">I accept the</span> <a href="/terms.html" target="_blank" rel="noopener" data-i18n="legalTerms">Terms</a>.</span></label>
               <p><span data-i18n="legalPrivacyNotice">Read how we use your account data in our</span> <a href="/privacy.html" target="_blank" rel="noopener" data-i18n="legalPrivacy">Privacy policy</a>.</p>
+              <label class="legal-checkbox"><input id="account-signup-public-index" type="checkbox" checked /><span data-i18n="publicIndexSignup">Make my username and discovered countries public. I can hide my index later.</span></label>
             </div>
             <button id="account-email-submit" class="guess-button" type="submit" data-i18n="accountLogin">Sign in</button>
           </form>
@@ -103,12 +105,18 @@
           <form id="account-agreement-form">
             <label class="legal-checkbox"><input id="account-agreement-check" type="checkbox" required /><span><span data-i18n="legalAccept">I accept the</span> <a href="/terms.html" target="_blank" rel="noopener" data-i18n="legalTerms">Terms</a>.</span></label>
             <p><span data-i18n="legalPrivacyNotice">Read how we use your account data in our</span> <a href="/privacy.html" target="_blank" rel="noopener" data-i18n="legalPrivacy">Privacy policy</a>.</p>
+            <label class="legal-checkbox"><input id="account-agreement-public-index" type="checkbox" /><span data-i18n="publicIndexSignup">Make my username and discovered countries public. I can hide my index later.</span></label>
             <button id="account-agreement-submit" class="guess-button" type="submit" data-i18n="legalContinue">Accept and continue</button>
           </form>
           <button id="account-agreement-retry" class="text-link" type="button" data-i18n="accountRetry" hidden>Retry sync</button>
         </section>
         <div id="account-username-profile" data-player-profile hidden></div>
         <button id="account-cancel-username" class="text-link" type="button" data-i18n="usernameCancel" hidden>Cancel</button>
+        <section id="account-public-profile" class="account-legal account-public-profile" hidden>
+          <label class="legal-checkbox"><input id="account-public-index" type="checkbox" /><span data-i18n="publicIndexLabel">Public country index</span></label>
+          <p id="account-public-status" role="status" aria-live="polite"></p>
+          <div class="public-profile-actions"><a id="account-public-link" class="text-link" data-i18n="publicProfileLink" hidden>View public profile</a><button id="account-public-copy" class="text-link" type="button" data-i18n="copyProfileLink" hidden>Copy link</button></div>
+        </section>
         <div class="account-actions">
           <button id="account-password-reset" class="text-link" type="button" data-i18n="passwordManage" hidden>Change password</button>
           <button id="account-logout" class="text-link" type="button" data-i18n="accountLogout" hidden>Sign out</button>
@@ -181,6 +189,11 @@
             <p class="room-rule" data-i18n="indexDescription">Your world, one discovery at a time.</p>
           </section>
           <section id="country-index" class="country-index" aria-labelledby="index-title" hidden>
+            <form id="player-search" class="player-search" action="/" method="get">
+              <label for="player-username" data-i18n="findPlayer">Find a player by username</label>
+              <div class="profile-row"><input id="player-username" name="profile" type="search" minlength="3" maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false" required /><button class="secondary-button" type="submit" data-i18n="viewProfile">View profile</button></div>
+            </form>
+            <p id="public-profile-status" class="room-rule" role="status" aria-live="polite" hidden></p>
             <div class="section-heading"><h2 id="index-title" data-i18n="countryIndex">Country index</h2><span id="index-count" aria-live="polite" aria-atomic="true">0 / 195</span></div>
             <div class="index-views" role="group" aria-label="Map view" data-i18n-aria="mapView"><button id="index-globe" type="button" data-map-view="globe" aria-pressed="true" data-i18n="globeView">Globe</button><button id="index-flat" type="button" data-map-view="flat" aria-pressed="false" data-i18n="flatView">Flat map</button></div>
             <progress id="index-progress" value="0" max="195" aria-label="Countries found" data-i18n-aria="foundCountries"></progress>

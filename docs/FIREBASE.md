@@ -50,7 +50,7 @@ Signed-in Google users can request **Change password**. Completing the email lin
 
 ## Progress and access
 
-- Before importing guest progress or syncing an account, the client checks `players/{uid}/agreements/{version}`. Email sign-up requires an explicit unchecked checkbox; Google and existing accounts without the current agreement see an acceptance form. The agreement contains only `version` and `acceptedAt` (server timestamp). Rules allow the owner to create only the current version, reject updates/deletes and other fields, and block account data writes before acceptance. Keep `src/shared/legal.ts`, the public legal pages and the rule version aligned when publishing new Terms. Retain published versions in repository history.
+- Before importing guest progress or syncing an account, the client checks `players/{uid}/agreements/{version}`. Email sign-up requires an explicit unchecked checkbox; Google and existing accounts without the current agreement see an acceptance form. The agreement contains `version`, `acceptedAt` (server timestamp), and an optional `publicIndex` boolean recording the registration sharing choice. Missing sharing flags default to false; retries preserve the original choice. Rules allow the owner to create only the current version, reject updates/deletes and other fields, and block account data writes before acceptance. Keep `src/shared/legal.ts`, the public legal pages and the rule version aligned when publishing new Terms. Retain published versions in repository history.
 
 - Signed-in players choose a unique username: 3–24 characters, at least three ASCII letters, starting with a letter, with numbers and underscores allowed. Names are normalized to lowercase. A transaction claims `usernames/{username}` together with the owner's profile; rules reject duplicate claims, orphan reservations and cross-account changes. Renaming releases the previous reservation atomically. Guests can still choose a local display name.
 
@@ -65,7 +65,7 @@ Progress imported from a guest browser is self-reported. This data is suitable f
 
 ## Verification
 
-For verified deletion requests, use the Firebase project administrator account: verify ownership, recursively delete the player's Firestore document and all subcollections (including progress, daily histories and agreements), release its `usernames/{username}` reservation, and delete the matching Authentication user. Deleting only the Authentication user does not remove Firestore data. Advise the player to clear site data on their devices to remove local caches. Handle these requests privately through the project contact channel; never put account details in a public issue.
+For verified deletion requests, use the Firebase project administrator account: verify ownership, recursively delete the player's Firestore document and all subcollections (including progress, daily histories and agreements), delete `publicProfiles/{uid}`, release its `usernames/{username}` reservation, and delete the matching Authentication user. Deleting only the Authentication user does not remove Firestore data. Advise the player to clear site data on their devices to remove local caches. Handle these requests privately through the project contact channel; never put account details in a public issue.
 
 `npm test`, `npm run lint`, `npm run build`, and `npm run check:client-build` validate the application. Use the Firebase Auth and Firestore emulators for account switching, guest migration, offline retry, device merging, and owner-only security-rule tests. Never connect an emulator test to a production database.
 
@@ -76,3 +76,11 @@ firebase emulators:exec --only firestore --project demo-mundi-rules "npm run tes
 ```
 
 The script requires a loopback `FIRESTORE_EMULATOR_HOST` and always targets the disposable `demo-mundi-rules` project.
+
+## Public player indexes
+
+A public profile opens at `/?profile=username`. Exact username lookup and `publicProfiles/{uid}` reads are available without sign-in only when the canonical `players/{uid}.publicIndex` is true and the username matches. Collection listing is denied. Private profiles, discovery timestamps and daily histories remain owner-only.
+
+The public snapshot contains exactly `username`, a list of country IDs `countries`, and `updatedAt`. Rules require a verified owner, accepted Terms, canonical username, server timestamp and country IDs matching the private collection. The client publishes after private synchronization. Visibility changes update the canonical flag and snapshot in one transaction; disabling deletes the snapshot and the read gate immediately rejects access. Renaming invalidates the old URL and snapshot until the current username is published.
+
+Email registrations show an optional sharing checkbox checked by default. New Google accounts receive the same choice during Terms acceptance. The preference is retained in the immutable agreement until verification and first profile creation. Existing profiles never inherit this default: an absent flag means private, and only their owner can enable sharing in the account dialog. This does not create a trusted leaderboard; progress is self-reported.

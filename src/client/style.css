@@ -587,3 +587,12 @@ select:disabled { opacity: .5; }
   .language-button { margin-left: 0; }
   #theme-label { display: none; }
 }
+
+/* Public profiles reuse the country index without exposing discovery history. */
+.account-public-profile { border-top: 1px solid var(--line); padding-top: 16px; }
+.public-profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.public-profile-actions .text-link { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
+.player-search { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+.player-search label { display: block; margin-bottom: 8px; font-size: var(--meta-size); color: var(--muted); }
+.public-index .index-tools > div:last-child { display: none; }
+.profile-unavailable :is(#index-count, .index-views, #index-progress, #storage-note, .index-tools, #index-date-note, #index-empty, #index-countries, .index-play) { display: none; }

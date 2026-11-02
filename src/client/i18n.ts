@@ -2,6 +2,22 @@ import type { Country } from '../shared/countries.js';
 
 export type Language = 'en' | 'es';
 const messages = {
+  players: ['Players', 'Jugadores'],
+  playerProfile: ['Player profile', 'Perfil de jugador'],
+  findPlayer: ['Find a player by username', 'Buscá un jugador por su usuario'],
+  viewProfile: ['View profile', 'Ver perfil'],
+  publicIndexLoading: ['Loading this player’s index…', 'Cargando el índice del jugador…'],
+  publicIndexMissing: ['This profile is private or unavailable. Check the username or try again later.', 'Este perfil es privado o no está disponible. Revisá el usuario o probá más tarde.'],
+  publicIndexReadOnly: ['This player’s discovered countries. Their email and discovery dates stay private.', 'Los países descubiertos de este jugador. Su correo y las fechas de descubrimiento son privados.'],
+  publicIndexLabel: ['Public country index', 'Índice de países público'],
+  publicIndexSignup: ['Make my username and discovered countries public. I can hide my index later.', 'Hacer públicos mi usuario y mis países descubiertos. Puedo ocultar mi índice después.'],
+  publicIndexHint: ['Anyone with your username or link can see your discovered countries. Your email and discovery dates stay private.', 'Cualquiera con tu usuario o enlace puede ver tus países descubiertos. Tu correo y las fechas son privados.'],
+  privateIndexHint: ['Only you can see your index. Turn this on to share it.', 'Solo vos podés ver tu índice. Activá esta opción para compartirlo.'],
+  publicIndexSaving: ['Saving visibility…', 'Guardando visibilidad…'],
+  publicIndexError: ['Could not update your public index. Check your connection and try again.', 'No se pudo actualizar tu índice público. Revisá tu conexión y reintentá.'],
+  publicIndexCopyError: ['Could not copy the link. Open your profile and copy its address.', 'No se pudo copiar el enlace. Abrí tu perfil y copiá su dirección.'],
+  publicProfileLink: ['View public profile', 'Ver perfil público'],
+  copyProfileLink: ['Copy link', 'Copiar enlace'],
   navigation: ['Navigation', 'Navegación'],
   accountLogin: ['Sign in', 'Iniciar sesión'],
   legalTerms: ['Terms', 'Términos'],

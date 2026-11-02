@@ -5,7 +5,7 @@ import type { Message } from './i18n.js';
 import { initializeEmailVerification } from './email-verification.js';
 
 /** Firebase owns credentials; passwords stay only in the current form/request. */
-export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => void, registered: (uid: string) => Promise<void>, customEmail = false, verified: (user: User) => void = () => {}) {
+export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => void, registered: (uid: string, publicIndex: boolean) => Promise<void>, customEmail = false, verified: (user: User) => void = () => {}) {
   const find = <T extends HTMLElement>(id: string) => document.querySelector<T>(`#${id}`)!;
   const panel = find('account-email-panel');
   const form = find<HTMLFormElement>('account-email-form');
@@ -21,6 +21,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
   const manage = find<HTMLButtonElement>('account-password-reset');
   const feedback = find('account-email-feedback');
   const agreement = find<HTMLInputElement>('account-signup-agree');
+  const publicIndex = find<HTMLInputElement>('account-signup-public-index');
   let mode: 'signin' | 'signup' | 'reset' = 'signin';
   let user: User | null = null; let pending = false;
   let message: Message | null = null; let error = false;
@@ -28,6 +29,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
 
   function render(next: User | null, busy: boolean): void {
     if (next?.uid !== user?.uid) { password.value = ''; password.type = 'password'; mode = 'signin'; message = null; }
+    if (next?.emailVerified && ['emailVerificationSent', 'emailVerificationFailed', 'emailVerifyPending', 'emailVerifyWait'].includes(message ?? '')) { message = null; error = false; }
     user = next; pending = busy;
     panel.hidden = !!user;
     find('account-status').hidden = !user && mode === 'reset';
@@ -48,6 +50,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     find('account-password-hint').hidden = mode !== 'signup';
     find('account-signup-legal').hidden = mode !== 'signup';
     agreement.required = mode === 'signup' && !user; agreement.disabled = pending || mode !== 'signup' || !!user;
+    publicIndex.disabled = pending || mode !== 'signup' || !!user;
     show.setAttribute('aria-label', t(password.type === 'password' ? 'passwordShow' : 'passwordHide'));
     show.setAttribute('aria-pressed', String(password.type === 'text'));
     for (const control of [email, submit, change, signin, back, forgot, show]) control.disabled = pending;
@@ -115,7 +118,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
         if (!agreement.checked) { notice('legalRequired', true); return; }
         const result = await createUserWithEmailAndPassword(auth, address, value);
         password.value = '';
-        try { await registered(result.user.uid); }
+        try { await registered(result.user.uid, publicIndex.checked); }
         catch { /* The agreement can be recorded again after email verification. */ }
         try {
           await sendVerification(result.user); verification.markSent(result.user);
@@ -128,6 +131,7 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
   function switchMode(next: typeof mode, focusEmail = true): void {
     if (pending || mode === next) return;
     mode = next; message = null; agreement.checked = false; password.value = ''; password.type = 'password'; render(user, pending);
+    if (next === 'signup') publicIndex.checked = true;
     if (focusEmail) email.focus();
   }
   signin.addEventListener('click', () => switchMode('signin', false));

@@ -70,7 +70,7 @@ export function createCollection(atlas: Atlas) {
 }
 export type Collection = ReturnType<typeof createCollection>;
 
-export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): void {
+export function showIndex(atlas: Atlas, globe: Globe, collection: Pick<Collection, 'ids' | 'canSave' | 'addedAt' | 'subscribe'>, username?: string): void {
   const panel = document.querySelector<HTMLElement>('#country-index')!;
   const query = document.querySelector<HTMLInputElement>('#index-search')!;
   const filter = document.querySelector<HTMLSelectElement>('#index-filter')!;
@@ -79,12 +79,17 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
   const list = document.querySelector<HTMLElement>('#index-countries')!;
   initializeMapView(globe, document.querySelector<HTMLElement>('.index-views')!, 'mundi-index-view');
   panel.hidden = false;
+  panel.classList.toggle('public-index', !!username);
+  if (username) {
+    const title = document.querySelector('#index-title')!;
+    title.removeAttribute('data-i18n'); title.textContent = `@${username}`;
+  }
   document.querySelector('.game-panel')!.classList.add('index-panel');
   document.querySelector<HTMLElement>('#feedback')!.hidden = true;
   document.querySelector<HTMLElement>('.legend')!.hidden = true;
-  setTranslatedText(document.querySelector('#mode-label')!, 'countryIndex');
+  setTranslatedText(document.querySelector('#mode-label')!, username ? 'playerProfile' : 'countryIndex');
   function render(): void {
-    document.querySelector<HTMLElement>('#index-date-note')!.hidden = order.value === 'name';
+    document.querySelector<HTMLElement>('#index-date-note')!.hidden = !!username || order.value === 'name';
     for (const option of region.options) {
       const countries = atlas.countries.filter(country => option.value === 'all' || countryRegion(country.id) === option.value);
       const found = countries.filter(country => collection.ids.has(country.id)).length;
@@ -96,7 +101,7 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
     document.querySelector('#index-count')!.textContent = `${regionalIds.size} / ${regionalCountries.length}`;
     document.querySelector('#index-progress')!.setAttribute('max', String(regionalCountries.length));
     document.querySelector('#index-progress')!.setAttribute('value', String(regionalIds.size));
-    setTranslatedText(document.querySelector('#storage-note')!, collection.canSave ? progressOwner() ? 'accountLocalAndCloud' : 'localProgress' : 'storageUnavailable');
+    setTranslatedText(document.querySelector('#storage-note')!, username ? 'publicIndexReadOnly' : collection.canSave ? progressOwner() ? 'accountLocalAndCloud' : 'localProgress' : 'storageUnavailable');
     const visible = filterIndexCountries(atlas.countries, collection.ids, { query: query.value, status: filter.value, region: region.value })
       .sort((a, b) => {
         const alphabetical = countryName(a).localeCompare(countryName(b));
@@ -113,7 +118,7 @@ export function showIndex(atlas: Atlas, globe: Globe, collection: Collection): v
       const found = collection.ids.has(country.id); button.classList.toggle('found', found);
       const name = document.createElement('span'); name.textContent = countryName(country);
       const status = document.createElement('small'); status.textContent = t(found ? 'collected' : 'notCollected');
-      if (found) {
+      if (found && !username) {
         const addedAt = collection.addedAt(country.id);
         const date = document.createElement(addedAt === undefined ? 'span' : 'time'); date.className = 'discovery-date';
         if (addedAt === undefined) date.textContent = t('indexDateUnknown');
