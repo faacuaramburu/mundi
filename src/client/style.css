@@ -92,6 +92,10 @@ input { caret-color: var(--ink); }
 .account-dialog::backdrop { background: rgb(0 0 0 / .55); }
 .account-dialog[data-account-loading] :is(.account-auth-methods, .account-email-panel, .account-actions) { display: none; }
 .account-dialog #account-load-retry { margin-top: 20px; }
+.account-dialog[data-email-unverified] :is(#account-profile-overview, #account-username-profile, #account-cancel-username, #account-password-reset) { display: none; }
+.account-verification p { line-height: 1.6; }
+.verification-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 20px; }
+.account-dialog .verification-actions .text-link { margin-top: 0; }
 .account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px; }
 .account-dialog h2 { font-size: 1.5rem; line-height: 1.2; margin: 0; }
 .account-close { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; margin: -6px -12px -6px 0; padding: 10px; border: 0; background: transparent; color: var(--muted); }

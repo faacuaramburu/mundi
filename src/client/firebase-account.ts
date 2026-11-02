@@ -30,13 +30,17 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
   let activated = false;
   const agreement = initializeLegalAgreement(db, uid => {
-    if (user?.uid !== uid || activated) return;
+    if (user?.uid !== uid || !user.emailVerified || activated) return;
     activated = true;
     try { importGuestProgress(uid, ids); }
     catch { /* The guest copy remains intact if durable migration is unavailable. */ }
     setProgressOwner(uid); status = 'accountSyncing'; render(); dirty.add('all'); void flush();
   });
-  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); }, uid => agreement.record(uid), customEmail);
+  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); }, uid => agreement.record(uid), customEmail, next => {
+    if (user !== next || !next.emailVerified) return;
+    setAccountIdentity(next.uid, null, false);
+    status = 'legalAccountNotice'; render(); agreement.check(next.uid);
+  });
   setUsernameSaver(async value => {
     const uid = user?.uid; const version = generation;
     if (!activated || !uid || progressOwner() !== uid) return 'unavailable';
@@ -56,10 +60,10 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     dialog.toggleAttribute('data-signed-in', !!user);
     login.hidden = !!user; logout.hidden = !user;
     login.disabled = pendingAuth; logout.disabled = pendingAuth;
-    retry.hidden = !user || status !== 'accountSyncError';
-    document.querySelector('#account-guest')!.textContent = t(user ? 'accountClose' : 'accountGuest');
-    document.querySelector<HTMLButtonElement>('#account-guest')!.hidden = !!user;
-    document.querySelector('#storage-note')?.setAttribute('data-i18n', user ? 'accountLocalAndCloud' : 'localProgress');
+    retry.hidden = !activated || status !== 'accountSyncError';
+    document.querySelector('#account-guest')!.textContent = t(activated ? 'accountClose' : 'accountGuest');
+    document.querySelector<HTMLButtonElement>('#account-guest')!.hidden = activated;
+    document.querySelector('#storage-note')?.setAttribute('data-i18n', activated ? 'accountLocalAndCloud' : 'localProgress');
     emailUI.render(user, pendingAuth);
     if (user && !activated) document.querySelector<HTMLElement>('#account-status')!.hidden = true;
   }
@@ -210,11 +214,16 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
   onAuthStateChanged(auth, next => {
     generation++; activated = false; clearTimeout(timer); for (const stop of subscriptions) stop(); subscriptions = []; watching = false; dirty.clear();
     user = next;
-    setAccountIdentity(next?.uid ?? null, null, false);
+    setAccountIdentity(next?.emailVerified ? next.uid : null, null, false);
     // Restoring the same account keeps its local colors while consent/cloud checks run.
     // Switching identities still clears the previous account immediately.
-    if (!next || progressOwner() !== next.uid) setProgressOwner(null);
-    status = next ? 'legalAccountNotice' : 'accountGuestHint'; render(); agreement.check(next?.uid ?? null);
+    if (!next?.emailVerified || progressOwner() !== next.uid) setProgressOwner(null);
+    status = next ? 'legalAccountNotice' : 'accountGuestHint'; render();
+    agreement.check(next?.emailVerified ? next.uid : null);
+    if (next && !next.emailVerified) {
+      if (!dialog.open) dialog.showModal();
+      void emailUI.refreshVerification();
+    }
   }, () => { status = 'accountLoginError'; render(); });
   onLanguageChange(render); render();
 }

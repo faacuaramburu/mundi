@@ -5,6 +5,7 @@ import type { Atlas } from '../src/shared/countries.js';
 const auth = vi.hoisted(() => ({
   changed: null as ((user: User | null) => void) | null,
   accepted: null as ((uid: string) => void) | null,
+  verified: null as ((user: User) => void) | null,
   checkAgreement: vi.fn(),
   // Keep cloud reads pending: these cases exercise local restoration before sync.
   getDocs: vi.fn(() => new Promise<never>(() => {})),
@@ -28,7 +29,10 @@ vi.mock('../src/client/legal-agreement.js', () => ({
     return { check: auth.checkAgreement, record: vi.fn() };
   },
 }));
-vi.mock('../src/client/email-auth.js', () => ({ initializeEmailAuth: () => ({ render: vi.fn() }) }));
+vi.mock('../src/client/email-auth.js', () => ({ initializeEmailAuth: (_auth: unknown, _pending: unknown, _registered: unknown, _custom: unknown, verified: (user: User) => void) => {
+  auth.verified = verified;
+  return { render: vi.fn(), refreshVerification: vi.fn() };
+} }));
 vi.mock('../src/client/i18n.js', () => ({
   t: (key: string) => key,
   setTranslatedText: (node: { textContent: string }, key: string) => { node.textContent = key; },
@@ -44,6 +48,8 @@ class MemoryStorage {
   key(index: number) { return [...this.values.keys()].at(index) ?? null; }
 }
 class ElementStub extends EventTarget {
+  open = false;
+  showModal() { this.open = true; }
   hidden = false; disabled = false; textContent = ''; title = '';
   attributes = new Map<string, string>();
   setAttribute(name: string, value: string) { this.attributes.set(name, value); }
@@ -76,9 +82,45 @@ async function restore() {
   startFirebaseAccount({ projectId: 'demo-mundi', authDomain: 'demo-mundi.firebaseapp.com', apiKey: 'test-public-key', appId: 'test-app' }, ids);
   return { storage, collection };
 }
-const user = (uid: string) => ({ uid, email: `${uid}@example.test` }) as User;
+const user = (uid: string, emailVerified = true) => ({ uid, email: `${uid}@example.test`, emailVerified }) as User;
 
 describe('account restoration without progress flicker', () => {
+  it('leaves an unverified email account pending without importing or synchronizing progress', async () => {
+    const { storage, collection } = await restore();
+    auth.changed!(user('alice', false));
+    expect(storage.progressOwner()).toBeNull();
+    expect([...collection.ids]).toEqual(['ARG']);
+    expect(auth.checkAgreement).toHaveBeenLastCalledWith(null);
+    auth.accepted!('alice');
+    collection.add('CHE'); await vi.advanceTimersByTimeAsync(1000);
+    expect(auth.getDocs).not.toHaveBeenCalled();
+    expect(auth.transaction).not.toHaveBeenCalled();
+  });
+
+  it('requires verification and then agreement before activating the same pending account', async () => {
+    const { storage, collection } = await restore();
+    const pending = user('alice', false); auth.changed!(pending);
+    auth.verified!(pending);
+    expect(auth.checkAgreement).toHaveBeenLastCalledWith(null);
+    Object.assign(pending, { emailVerified: true }); auth.verified!(pending);
+    expect(auth.checkAgreement).toHaveBeenLastCalledWith('alice');
+    expect(storage.progressOwner()).toBeNull();
+    expect(auth.getDocs).not.toHaveBeenCalled();
+    auth.accepted!('alice');
+    expect(storage.progressOwner()).toBe('alice');
+    expect(new Set(collection.ids)).toEqual(new Set(['ARG', 'BRA']));
+    expect(auth.getDocs).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores verification finishing after another account has signed in', async () => {
+    const { storage } = await restore();
+    const pending = user('alice', false); auth.changed!(pending);
+    auth.changed!(user('bob', false));
+    Object.assign(pending, { emailVerified: true }); auth.verified!(pending);
+    expect(auth.checkAgreement).toHaveBeenLastCalledWith(null);
+    expect(storage.progressOwner()).toBeNull();
+    expect(auth.getDocs).not.toHaveBeenCalled();
+  });
   it('keeps the same account collection visible while its agreement is checked', async () => {
     const { storage, collection } = await restore();
     const redraw = vi.fn(); collection.subscribe(redraw);

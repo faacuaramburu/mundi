@@ -64,6 +64,11 @@
         <p id="account-status" role="status" aria-live="polite" data-i18n="accountLoading">Loading your account…</p>
         <button id="account-load-retry" class="secondary-button" type="button" data-i18n="accountLoadRetry" hidden>Try again</button>
         <p id="account-email-feedback" class="account-feedback" role="status" aria-live="polite" hidden></p>
+        <section id="account-verification" class="account-verification" aria-labelledby="account-verification-note" hidden>
+          <p id="account-verification-note" data-i18n="emailVerifyRequired">Open the link in your email to activate your account. Your discoveries stay in this browser until you confirm your address.</p>
+          <p class="profile-note" data-i18n="emailVerifyInbox">Check your inbox and spam folder. You can keep playing as a guest while you wait.</p>
+          <div class="verification-actions"><button id="account-verify-check" class="secondary-button" type="button" data-i18n="emailVerifyCheck">I verified my email</button><button id="account-verify-resend" class="text-link" type="button" data-i18n="emailVerifyResend">Resend email</button></div>
+        </section>
         <div id="account-auth-methods" class="account-auth-methods">
           <div id="account-auth-tabs" class="account-auth-tabs" role="tablist" aria-label="Account access" data-i18n-aria="accountAccess">
             <button id="account-email-signin-tab" type="button" role="tab" aria-controls="account-email-panel" aria-selected="true" data-i18n="accountLogin">Sign in</button>

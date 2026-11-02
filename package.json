@@ -14,6 +14,7 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
+    "test:rules": "node scripts/check-firestore-rules.mjs",
     "prepare:geography": "tsx scripts/prepare-geography.ts",
     "prepare:brand": "node scripts/prepare-brand-assets.mjs",
     "check:client-build": "node scripts/check-client-build.mjs",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@firebase/rules-unit-testing": "6.0.0",
     "@types/d3-geo": "3.1.0",
     "@types/node": "24.19.1",
     "@types/three": "0.186.0",

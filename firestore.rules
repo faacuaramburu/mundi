@@ -2,8 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function owns(uid) { return request.auth != null && request.auth.uid == uid; }
+    function verified() { return request.auth != null && request.auth.token.email_verified == true; }
     function accepted(uid) {
-      return owns(uid) && exists(/databases/$(database)/documents/players/$(uid)/agreements/2026-11-01);
+      return owns(uid) && verified() && exists(/databases/$(database)/documents/players/$(uid)/agreements/2026-11-01);
     }
     function validUsername(name) {
       return name is string && name.size() <= 24 && name.matches('^[a-z][a-z0-9_]{2,23}$')
@@ -20,7 +21,7 @@ service cloud.firestore {
             || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.username))));
     }
     match /players/{uid} {
-      allow read: if owns(uid);
+      allow read: if owns(uid) && verified();
       allow create, update: if accepted(uid)
         && request.resource.data.keys().hasAll(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt'])
         && request.resource.data.keys().hasOnly(['name', 'nameUpdatedAt', 'createdAt', 'lastSeenAt', 'username'])
@@ -31,7 +32,7 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp
         && request.resource.data.lastSeenAt == request.time;
       match /progress/collection {
-        allow read: if owns(uid);
+        allow read: if owns(uid) && verified();
         allow create, update: if accepted(uid)
           && request.resource.data.keys().hasAll(['discoveries', 'updatedAt'])
           && request.resource.data.keys().hasOnly(['discoveries', 'updatedAt'])
@@ -39,7 +40,7 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time;
       }
       match /daily/{day} {
-        allow read: if owns(uid);
+        allow read: if owns(uid) && verified();
         allow create, update: if accepted(uid) && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
           && request.resource.data.keys().hasAll(['day', 'guesses', 'targetId', 'won', 'updatedAt'])
           && request.resource.data.keys().hasOnly(['day', 'guesses', 'targetId', 'won', 'updatedAt'])
@@ -59,13 +60,13 @@ service cloud.firestore {
       }
     }
     match /usernames/{username} {
-      allow get: if request.auth != null;
+      allow get: if verified();
       allow create: if request.auth != null && accepted(request.auth.uid) && validUsername(username)
         && request.resource.data.keys().hasAll(['uid', 'createdAt'])
         && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
         && request.resource.data.uid == request.auth.uid && request.resource.data.createdAt == request.time
         && getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username == username;
-      allow delete: if request.auth != null && resource.data.uid == request.auth.uid
+      allow delete: if verified() && resource.data.uid == request.auth.uid
         && validUsername(getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username)
         && getAfter(/databases/$(database)/documents/players/$(request.auth.uid)).data.username != username;
     }

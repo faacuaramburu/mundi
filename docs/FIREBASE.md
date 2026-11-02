@@ -21,7 +21,9 @@ The web API key is public app configuration. Do not put service-account credenti
 
 Firebase Authentication owns password credentials and hashing. Passwords are not saved in Firestore, local storage, game analytics, or application logs. The password field is cleared after successful sign-in, registration, mode changes, and dialog close. Standard password-manager autocomplete and a Show/Hide control are available.
 
-Registration sends an address-verification email; players can continue playing while they verify. Reset requests show the same confirmation for existing and unknown addresses.
+Registration sends an address-verification email and leaves the account pending until the link is confirmed. Pending users can play as guests, resend the verification email, and check its status from the account dialog. Returning to the tab also checks verification; the client reloads the Firebase user and refreshes the ID token before continuing. Google accounts normally arrive with their email already verified. Reset requests show the same confirmation for existing and unknown addresses.
+
+Unverified identities cannot read or write account profiles, discoveries, daily progress, or username reservations under the Firestore rules. The only permitted account write before verification is the immutable Terms acceptance from registration. Guest data is merged only after both verification and agreement acceptance. Firebase Authentication still retains a pending Auth record; sending an email alone does not activate it or prove ownership.
 
 The account action page is available at `https://mundi.top/cuenta/accion.html`; `/__/auth/action` forwards to it on the same domain. The page handles verification, password resets, email recovery and the other supported Firebase account action codes with the existing Firebase SDK. It validates codes against the project's runtime configuration, never trusts a query-supplied project/API key or redirect URL, and removes action parameters from the address bar after reading them. Password reset requires a valid code and two matching passwords, and does not sign in automatically. Error, expired/used-code and connection-retry states are available in English and Spanish, with both site themes.
 
@@ -66,3 +68,11 @@ Progress imported from a guest browser is self-reported. This data is suitable f
 For verified deletion requests, use the Firebase project administrator account: verify ownership, recursively delete the player's Firestore document and all subcollections (including progress, daily histories and agreements), release its `usernames/{username}` reservation, and delete the matching Authentication user. Deleting only the Authentication user does not remove Firestore data. Advise the player to clear site data on their devices to remove local caches. Handle these requests privately through the project contact channel; never put account details in a public issue.
 
 `npm test`, `npm run lint`, `npm run build`, and `npm run check:client-build` validate the application. Use the Firebase Auth and Firestore emulators for account switching, guest migration, offline retry, device merging, and owner-only security-rule tests. Never connect an emulator test to a production database.
+
+With the Firebase CLI and Java installed, run the email-verification and ownership rule regressions locally:
+
+```sh
+firebase emulators:exec --only firestore --project demo-mundi-rules "npm run test:rules"
+```
+
+The script requires a loopback `FIRESTORE_EMULATOR_HOST` and always targets the disposable `demo-mundi-rules` project.
