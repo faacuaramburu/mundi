@@ -19,7 +19,7 @@ Enter a country name and select a suggestion. Colors and approximate distances g
 
 ## Your country index
 
-Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Filter by continent, discovery status and date. The home globe highlights the countries you have found and rotates slowly. Open the index from the home screen.
+Correct guesses join your collection of 195 countries, which you can explore on a globe or flat map. Search by name, filter by continent or discovery status, and sort by discovery date. The home globe highlights the countries you have found and rotates slowly. Open the index from the home screen.
 
 ## Optional accounts
 
@@ -27,9 +27,9 @@ Play without an account and keep your discoveries, daily attempts and optional g
 
 Sign in with Google or create an account with an email and password to merge existing guest progress into your account and synchronize discoveries and daily challenges across devices. Each account has its own local cache; switching accounts keeps their progress separate.
 
-Email registration requires at least 8 password characters and sends an email verification link. Account emails are delivered by Resend with links to `mundi.top`; Firebase validates the verification and password reset codes. Existing Google players can use **Create or change password** inside their account to add password access to the same email and keep their UID and progress. Firebase Authentication manages password hashing; passwords are never written to Firestore, game storage, or server logs.
+Email registration requires at least 8 password characters and sends an email verification link. Account emails are delivered by Resend with links to `mundi.top`; Firebase validates the verification and password reset codes. Existing Google players can use **Change password** inside their account to add password access to the same email and keep their UID and progress. Firebase Authentication manages password hashing; passwords are never written to Firestore, game storage, or server logs.
 
-Choose a unique username with 3–24 characters and at least three letters. Names start with a letter, allow a–z, numbers and underscores, and are saved in lowercase. The profile icon opens your account; this is the single place to edit a signed-in username. Guest display names remain optional on the home and multiplayer screens.
+Choose a unique username with 3–24 characters and at least three letters. Names start with a letter, allow a–z, numbers and underscores, and are saved in lowercase. The profile icon opens your account; this is the single place to edit a signed-in username. The icon is available while the account loads, and restoring the same session keeps cached discoveries visible during synchronization. Guest display names remain optional on the home and multiplayer screens.
 
 Public [Terms](https://mundi.top/terms.html), [Privacy](https://mundi.top/privacy.html), and [Contact](https://mundi.top/contact.html) pages are available in English and Spanish. Email registration requires an unchecked Terms acceptance box. Google and existing accounts accept the current version before account progress is imported or synced. Firestore records the version and server timestamp in a private immutable agreement document. Guest play remains available without creating an account; accepting the Terms does not authorize personalized advertising.
 
@@ -64,14 +64,20 @@ npm run dev
 
 Open **[http://127.0.0.1:5173](http://127.0.0.1:5173)**. Stop both processes with `Ctrl+C`.
 
-Accounts stay hidden until `FIREBASE_WEB_CONFIG` is configured. Local guest games do not require a Firebase project. See [.env.example](.env.example) and [Firebase setup](docs/FIREBASE.md).
+Local guest games do not require a Firebase project. To enable sign-in and synchronization, copy [.env.example](.env.example) to `.env`, set `FIREBASE_WEB_CONFIG`, and follow [Firebase setup](docs/FIREBASE.md). Without account configuration, the profile icon shows an unavailable state and guest play remains usable.
+
+Run the same verification steps used by CI:
 
 ```sh
-npm test
 npm run lint
+npm run typecheck
+npm test
 npm run build
 npm run check:client-build
+npm audit --audit-level=moderate
 ```
+
+CI runs these checks on pushes and pull requests. CodeQL runs separately, and Dependabot opens dependency update pull requests. Patched `glob` and `minimatch` versions are pinned through `overrides` until their consumers adopt them; review those pins when updating dependencies rather than disabling the audit check.
 
 ## Credits and license
 

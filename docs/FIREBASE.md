@@ -1,6 +1,6 @@
 # Optional accounts
 
-Mundi uses Firebase Authentication (Google and email/password) and Cloud Firestore. Gameplay remains available without an account. Firebase configuration is fetched at runtime from `/api/account/config`; the account button stays hidden when configuration is absent.
+Mundi uses Firebase Authentication (Google and email/password) and Cloud Firestore. Gameplay remains available without an account. Firebase configuration is fetched at runtime from `/api/account/config` alongside the map load. The profile icon is visible immediately; its dialog shows loading and retry states when configuration is absent or unavailable, without blocking guest play.
 
 ## Configuration
 
@@ -44,7 +44,7 @@ Limits apply per recipient (60-second cooldown, three requests per hour), per se
 
 The delivery integration was checked with real Firebase action codes and Resend's labeled `delivered+…@resend.dev` test sink. Verification and password reset succeeded on the same disposable Firebase UID, which was removed afterward. No existing player's password was changed.
 
-Signed-in Google users can request **Create or change password**. Completing the email link sets a password on that same Firebase account rather than creating a second player. The unique game username is a public display name, not a login identifier. Sign-in uses Google or email/password.
+Signed-in Google users can request **Change password**. Completing the email link sets a password on that same Firebase account rather than creating a second player. The unique game username is a public display name, not a login identifier. Sign-in uses Google or email/password.
 
 ## Progress and access
 
@@ -54,7 +54,7 @@ Signed-in Google users can request **Create or change password**. Completing the
 
 - Existing guest discoveries, their known dates, daily histories, and the chosen game nickname are merged into the signed-in account. Guest data is consumed only after a durable local copy succeeds.
 - Discoveries merge by union and earliest known date. Completed daily challenges take precedence; conflicting histories are not concatenated. The last 366 days are synchronized.
-- Each UID has a separate browser cache. Signing out returns to guest play. Changing accounts does not copy the previous account's cache.
+- Each UID has a separate browser cache. Restoring the same authenticated UID keeps its cached discoveries visible while the agreement is checked; synchronization and username writes still wait for acceptance. Signing out returns to guest play. Changing accounts clears the previous visible scope immediately and does not copy its cache.
 - Collection and daily changes synchronize between signed-in devices. Failed writes remain queued locally, retry after reconnecting, and can be retried from the account dialog. Do not clear browser storage while changes are pending.
 - Firestore stores `players/{uid}`, `players/{uid}/progress/collection`, and `players/{uid}/daily/{YYYY-MM-DD}`. Rules allow only that UID to read or write its records, deny global player listing, and reject unknown document fields. Firebase Authentication keeps login identities; email is not used as the public game nickname.
 - The project owner can view registered accounts in Firebase Console → Authentication → Users, and progress in Firestore. Players do not get access to this administration.
