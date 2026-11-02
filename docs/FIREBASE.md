@@ -15,7 +15,7 @@ The server transparently proxies the reserved `/__/auth/` helper resources to th
 
 Before setting `authDomain` to `mundi.top`, add `https://mundi.top/__/auth/handler` to the existing Google OAuth web client's authorized redirect URIs in Google Cloud Console. Keep the Firebase redirect URI for fallback. `mundi.top` must also remain in Firebase Authentication's authorized domains. Change only `authDomain`; preserve the project, app ID and API key so existing accounts and progress keep working.
 
-The web API key is public app configuration. Do not put service-account credentials, OAuth client secrets, or Firebase CLI credentials in this setting, the browser, or the repository. No Admin SDK key is needed by the game server.
+The web API key is public app configuration. Do not put service-account credentials, OAuth client secrets, or Firebase CLI credentials in this setting, the browser, or the repository. Basic accounts do not need an Admin SDK key. The optional custom email delivery described below uses a separate, narrowly scoped server credential.
 
 ## Passwords and recovery
 
@@ -27,7 +27,22 @@ The account action page is available at `https://mundi.top/cuenta/accion.html`; 
 
 Deploy the action page before changing Authentication → Templates → Customize action URL (the project setting `notification.sendEmail.callbackUri`) to `https://mundi.top/__/auth/action`. This changes future emails; messages already sent retain their original links and continue using the previous hosted handler. Keep Google sign-in's `/__/auth/handler` separate from email action links.
 
-Current email links use `https://mundi-c6fa3.web.app/__/auth/action`, which Firebase accepted and which removes `firebaseapp.com` from new emails. The fully custom Mundi hostname is still pending: the project rejected both Mundi action URL variants with HTTP 400 `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`, despite `mundi.top` being authorized and its mail DNS verification succeeding. Do not claim new emails use `mundi.top` until a successful update is read back from Firebase. No billing upgrade, external mail service, or real-account email tests were performed.
+Firebase's default email templates retain `https://mundi-c6fa3.web.app/__/auth/action` as their fallback URL. The project rejects custom callback updates with `EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`, including an atomic custom-SMTP update. The Mundi frontend therefore uses its own server email endpoint when configured: Firebase Admin generates a verification or reset code, the server constructs a link on `APP_ORIGIN` at `/cuenta/accion.html`, and Resend delivers the email. The action page still validates and applies the code directly with Firebase. Existing emails and Google sign-in keep their previous handlers.
+
+### Custom account email delivery
+
+Set these two **server-only** environment variables in Render, preserving the existing `APP_ORIGIN` and public Firebase configuration:
+
+- `RESEND_API_KEY`: a Resend **Sending access** key limited to the verified `mundi.top` domain.
+- `FIREBASE_MAIL_SERVICE_ACCOUNT`: JSON for the dedicated mail service account in the same Firebase project. Its custom IAM role needs only `firebaseauth.users.sendEmail`. Do not use a project-owner credential or a Firebase CLI refresh token.
+
+Both variables are required together. Startup validates the key, RSA credential and project match; the public configuration exposes only `customEmail: true`. No private credentials enter client assets. Keep open and click tracking disabled for these security emails. The sender is `Mundi <noreply@HOSTNAME>`, using the canonical `APP_ORIGIN` hostname.
+
+`POST /api/account/email` accepts only verification and reset requests from the canonical origin. Verification requires a valid Firebase ID token, and authenticated requests always use the email in that token. Public reset requests return the same confirmation for an unknown account. Arbitrary message content, destinations for redirects and action links supplied by a client are rejected. Provider errors and action codes never appear in endpoint responses or application logs.
+
+Limits apply per recipient (60-second cooldown, three requests per hour), per server minute (10), per process day (90) and to concurrent sends (four). Recipient identifiers are hashed and expire after an hour. These counters are in memory for the current single Render instance and reset on restart; use shared persistent quotas before scaling to multiple instances or relying on a durable billing cap. A delivery failure displays an error instead of claiming an email was sent or silently switching to Firebase's old link domain.
+
+The delivery integration was checked with real Firebase action codes and Resend's labeled `delivered+…@resend.dev` test sink. Verification and password reset succeeded on the same disposable Firebase UID, which was removed afterward. No existing player's password was changed.
 
 Signed-in Google users can request **Create or change password**. Completing the email link sets a password on that same Firebase account rather than creating a second player. The unique game username is a public display name, not a login identifier. Sign-in uses Google or email/password.
 

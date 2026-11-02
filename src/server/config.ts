@@ -1,4 +1,10 @@
 import type { FirebaseWebConfig } from '../shared/account.js';
+import { createPrivateKey } from 'node:crypto';
+
+export interface AccountMailConfig {
+  resendApiKey: string;
+  serviceAccount: { projectId: string; clientEmail: string; privateKey: string };
+}
 
 export interface Config {
   environment: 'development' | 'test' | 'production';
@@ -6,6 +12,7 @@ export interface Config {
   port: number;
   origin: string;
   firebase?: FirebaseWebConfig;
+  accountMail?: AccountMailConfig;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -49,5 +56,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       firebase = { apiKey: value.apiKey, authDomain: value.authDomain, projectId: value.projectId, appId: value.appId };
     } catch { throw new Error('Invalid FIREBASE_WEB_CONFIG'); }
   }
-  return { environment: environment as Config['environment'], host, port, origin, ...(firebase ? { firebase } : {}) };
+  let accountMail: AccountMailConfig | undefined;
+  if (env.RESEND_API_KEY || env.FIREBASE_MAIL_SERVICE_ACCOUNT) {
+    try {
+      if (!firebase || !env.RESEND_API_KEY || !/^re_[A-Za-z0-9_-]{15,200}$/.test(env.RESEND_API_KEY)) throw new Error();
+      const value = JSON.parse(env.FIREBASE_MAIL_SERVICE_ACCOUNT ?? '') as Record<string, unknown>;
+      if (value.project_id !== firebase.projectId || typeof value.client_email !== 'string'
+        || !value.client_email.endsWith(`@${firebase.projectId}.iam.gserviceaccount.com`)
+        || typeof value.private_key !== 'string') throw new Error();
+      const key = createPrivateKey(value.private_key);
+      if (key.asymmetricKeyType !== 'rsa' || (key.asymmetricKeyDetails?.modulusLength ?? 0) < 2048) throw new Error();
+      accountMail = { resendApiKey: env.RESEND_API_KEY, serviceAccount: { projectId: firebase.projectId, clientEmail: value.client_email, privateKey: value.private_key } };
+    } catch { throw new Error('Invalid account email configuration'); }
+  }
+  return { environment: environment as Config['environment'], host, port, origin, ...(firebase ? { firebase } : {}), ...(accountMail ? { accountMail } : {}) };
 }

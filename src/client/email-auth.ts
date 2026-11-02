@@ -4,7 +4,7 @@ import { getLanguage, t } from './i18n.js';
 import type { Message } from './i18n.js';
 
 /** Firebase owns credentials; passwords stay only in the current form/request. */
-export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => void, registered: (uid: string) => Promise<void>): { render: (user: User | null, pending: boolean) => void } {
+export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => void, registered: (uid: string) => Promise<void>, customEmail = false): { render: (user: User | null, pending: boolean) => void } {
   const find = <T extends HTMLElement>(id: string) => document.querySelector<T>(`#${id}`)!;
   const panel = find('account-email-panel');
   const form = find<HTMLFormElement>('account-email-form');
@@ -76,11 +76,27 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
     finally { setPending(false); }
   }
   async function reset(address: string, knownAccount = false): Promise<void> {
-    try { await sendPasswordResetEmail(auth, address); }
+    try {
+      if (customEmail) await requestAccountEmail('resetPassword', address, knownAccount ? user ?? undefined : undefined);
+      else await sendPasswordResetEmail(auth, address);
+    }
     catch (cause) {
       if (knownAccount || !(cause && typeof cause === 'object' && 'code' in cause && cause.code === 'auth/user-not-found')) throw cause;
     }
     notice(knownAccount ? 'passwordResetSentAccount' : 'passwordResetSent');
+  }
+  async function requestAccountEmail(mode: 'verifyEmail' | 'resetPassword', address: string, account?: User): Promise<void> {
+    let response: Response;
+    try {
+      const token = account ? await account.getIdToken() : undefined;
+      response = await fetch('/api/account/email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ mode, email: address, language: getLanguage() }), signal: AbortSignal.timeout(15000),
+      });
+    } catch { throw { code: 'auth/network-request-failed' }; }
+    if (response.status === 429) throw { code: 'auth/too-many-requests' };
+    if (response.status === 400) throw { code: 'auth/invalid-email' };
+    if (!response.ok) throw { code: 'auth/network-request-failed' };
   }
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -93,7 +109,11 @@ export function initializeEmailAuth(auth: Auth, setPending: (value: boolean) => 
         password.value = '';
         try { await registered(result.user.uid); }
         catch { notice('legalSaveError', true); return; }
-        try { await sendEmailVerification(result.user); notice('emailVerificationSent'); }
+        try {
+          if (customEmail) await requestAccountEmail('verifyEmail', result.user.email ?? address, result.user);
+          else await sendEmailVerification(result.user);
+          notice('emailVerificationSent');
+        }
         catch { notice('emailCreated'); }
       } else { await signInWithEmailAndPassword(auth, address, value); password.value = ''; }
     });

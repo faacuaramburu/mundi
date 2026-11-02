@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/server/config.js';
+import { generateKeyPairSync } from 'node:crypto';
+import { createApp } from '../src/server/app.js';
 
 describe('configuration', () => {
+  it('keeps private mail credentials on the server and rejects incomplete or mismatched credentials', async () => {
+    const firebase = { apiKey: 'public_test_api_key_1234567890', authDomain: 'mundi.top', projectId: 'mundi-test', appId: '1:123456:web:abc123' };
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    const account = { project_id: firebase.projectId, client_email: 'mailer@mundi-test.iam.gserviceaccount.com', private_key: privateKey };
+    const env = { APP_ORIGIN: 'https://mundi.top', FIREBASE_WEB_CONFIG: JSON.stringify(firebase), RESEND_API_KEY: 're_private_test_key_1234567890', FIREBASE_MAIL_SERVICE_ACCOUNT: JSON.stringify(account) };
+    expect(() => loadConfig({ ...env, FIREBASE_MAIL_SERVICE_ACCOUNT: '' })).toThrow('account email');
+    expect(() => loadConfig({ ...env, RESEND_API_KEY: '' })).toThrow('account email');
+    expect(() => loadConfig({ ...env, FIREBASE_MAIL_SERVICE_ACCOUNT: JSON.stringify({ ...account, project_id: 'wrong-project' }) })).toThrow('account email');
+    const app = createApp(loadConfig(env), false);
+    try {
+      const response = await app.inject({ method: 'GET', url: '/api/account/config' });
+      expect(response.json()).toEqual({ enabled: true, firebase, customEmail: true });
+      expect(response.body).not.toContain('private');
+      expect(response.body).not.toContain('resend');
+      expect(response.body).not.toContain('gserviceaccount');
+    } finally { await app.close(); }
+  });
   it('accepts only the public Firebase web fields and the matching auth domain', () => {
     const firebase = { apiKey: 'public_test_api_key_1234567890', authDomain: 'mundi-test.firebaseapp.com', projectId: 'mundi-test', appId: '1:123456:web:abc123' };
     expect(loadConfig({ FIREBASE_WEB_CONFIG: JSON.stringify({ ...firebase, privateKey: 'must-not-leak' }) }).firebase).toEqual(firebase);

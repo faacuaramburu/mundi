@@ -17,7 +17,7 @@ import { claimUsername } from './username-account.js';
 import { initializeEmailAuth } from './email-auth.js';
 import { initializeLegalAgreement } from './legal-agreement.js';
 
-export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet<string>): void {
+export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet<string>, customEmail = false): void {
   const app = initializeApp(config); const auth = getAuth(app); const db = getFirestore(app);
   const button = document.querySelector<HTMLButtonElement>('#account-toggle')!;
   const dialog = document.querySelector<HTMLDialogElement>('#account-dialog')!;
@@ -36,7 +36,7 @@ export function startFirebaseAccount(config: FirebaseWebConfig, ids: ReadonlySet
     catch { /* The guest copy remains intact if durable migration is unavailable. */ }
     setProgressOwner(uid); status = 'accountSyncing'; render(); dirty.add('all'); void flush();
   });
-  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); }, uid => agreement.record(uid));
+  const emailUI = initializeEmailAuth(auth, value => { pendingAuth = value; render(); }, uid => agreement.record(uid), customEmail);
   setUsernameSaver(async value => {
     const uid = user?.uid; const version = generation;
     if (!uid || progressOwner() !== uid) return 'unavailable';
