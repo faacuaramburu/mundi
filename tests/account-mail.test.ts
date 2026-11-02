@@ -18,7 +18,7 @@ async function setup() {
   apps.push(app);
   let now = Date.UTC(2026, 10, 2);
   const verifyUser = vi.fn(async () => ({ uid: 'owner', email: 'owner@example.com', verified: false }));
-  const createLink = vi.fn(async (mode: 'verifyEmail' | 'resetPassword', email: string) => { void email; return `https://mundi-test.web.app/__/auth/action?mode=${mode}&oobCode=${code}&apiKey=ignored&continueUrl=https://evil.example`; });
+  const createLink = vi.fn<AccountMailDependencies['createLink']>(async (mode, email) => { void email; return `https://mundi-test.web.app/__/auth/action?mode=${mode}&oobCode=${code}&apiKey=ignored&continueUrl=https://evil.example`; });
   const send = vi.fn(async (message: Parameters<AccountMailDependencies['send']>[0]) => { void message; });
   const close = vi.fn(async () => {});
   await registerAccountMail(app, config, { verifyUser, createLink, send, close, now: () => now });
@@ -72,6 +72,16 @@ describe('account email delivery', () => {
     expect(send).not.toHaveBeenCalled();
     expect((await request({ mode: 'resetPassword', email: 'other@example.com', language: 'es' })).json()).toEqual({ ok: true });
     expect(send).toHaveBeenCalledOnce();
+  });
+
+  it('preserves privacy for a redacted successful upstream response without claiming authenticated delivery', async () => {
+    const { request, createLink, send, advance } = await setup();
+    createLink.mockResolvedValueOnce(null);
+    expect((await request()).json()).toEqual({ ok: true });
+    expect(send).not.toHaveBeenCalled();
+    advance(61000); createLink.mockResolvedValueOnce(null);
+    expect((await request(undefined, { authorization: `Bearer ${token}` })).statusCode).toBe(503);
+    expect(send).not.toHaveBeenCalled();
   });
 
   it('rejects cross-site calls and unexpected fields before generating any link', async () => {

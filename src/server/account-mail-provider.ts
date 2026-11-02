@@ -16,7 +16,19 @@ export function createAccountMailProvider(config: Config): AccountMailDependenci
       return { uid: user.uid, email: user.email ?? '', verified: user.email_verified === true };
     },
     async createLink(mode, email) {
-      return mode === 'verifyEmail' ? auth.generateEmailVerificationLink(email) : auth.generatePasswordResetLink(email);
+      try {
+        return await (mode === 'verifyEmail' ? auth.generateEmailVerificationLink(email) : auth.generatePasswordResetLink(email));
+      } catch (cause) {
+        // With enumeration protection, a nonexistent address returns HTTP 200
+        // without an oobLink. Admin SDK 14 reports that successful redaction as
+        // an internal assertion. Suppress only that exact upstream response.
+        if (mode === 'resetPassword' && cause && typeof cause === 'object' && 'code' in cause && cause.code === 'auth/internal-error' && 'httpResponse' in cause) {
+          const response = cause.httpResponse as { status?: unknown; data?: { kind?: unknown; email?: unknown; oobLink?: unknown } } | undefined;
+          if (response?.status === 200 && response.data?.kind === 'identitytoolkit#GetOobConfirmationCodeResponse'
+            && response.data.email === email && response.data.oobLink === undefined) return null;
+        }
+        throw cause;
+      }
     },
     async send(message) {
       const response = await fetch('https://api.resend.com/emails', {

@@ -5,7 +5,7 @@ import type { Config } from './config.js';
 type MailMode = 'verifyEmail' | 'resetPassword';
 export interface AccountMailDependencies {
   verifyUser(token: string): Promise<{ uid: string; email: string; verified: boolean }>;
-  createLink(mode: MailMode, email: string): Promise<string>;
+  createLink(mode: MailMode, email: string): Promise<string | null>;
   send(message: { id: string; to: string; subject: string; html: string; text: string }): Promise<void>;
   close?(): Promise<void>;
   now?(): number;
@@ -86,11 +86,15 @@ export async function registerAccountMail(app: FastifyInstance, config: Config, 
     recipients.set(key, { count: (recent?.count ?? 0) + 1, start: recent?.start ?? now, last: now });
     dailyCount++; minuteCount++; active++;
     try {
-      let generated: string;
+      let generated: string | null;
       try { generated = await provider.createLink(mode, address); }
       catch (cause) {
         if (!authenticated && mode === 'resetPassword' && cause && typeof cause === 'object' && 'code' in cause && cause.code === 'auth/user-not-found') return { ok: true };
         throw cause;
+      }
+      if (generated === null) {
+        if (!authenticated && mode === 'resetPassword') return { ok: true };
+        throw new Error('No email action link available');
       }
       const link = actionUrl(generated, mode, config, language);
       await provider.send({ id: randomUUID(), to: address, ...message(mode, language, link) });
