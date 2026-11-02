@@ -9,6 +9,13 @@ export async function registerFirebaseAuth(app: FastifyInstance, config: Config,
   if (!config.firebase) return;
   const upstream = `https://${config.firebase.projectId}.firebaseapp.com`;
   app.register(async scope => {
+    // The helper checks the same public web configuration used by the game.
+    // This project does not deploy Firebase Hosting's generated init.json.
+    scope.get('/__/firebase/init.json', async (_request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      reply.header('X-Robots-Tag', 'noindex, nofollow');
+      return config.firebase;
+    });
     scope.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
     scope.route({
       method: ['GET', 'HEAD', 'POST'], url: '/__/auth/:resource', bodyLimit: 16384,
@@ -27,6 +34,11 @@ export async function registerFirebaseAuth(app: FastifyInstance, config: Config,
           reply.code(response.status).type(response.headers.get('content-type') ?? 'application/octet-stream');
           reply.header('X-Robots-Tag', 'noindex, nofollow');
           reply.header('X-Frame-Options', 'SAMEORIGIN');
+          // The popup navigates from this helper to Google and back. Giving the
+          // helper its own opener isolation severs the SDK's window reference;
+          // sign-in succeeds via storage but the blank popup stays for 15s.
+          // The main game retains same-origin-allow-popups and its strict CSP.
+          reply.header('Cross-Origin-Opener-Policy', 'unsafe-none');
           // The helper iframe must run within Mundi. These permissions apply only
           // to the reserved helpers; the game keeps its stricter policy.
           reply.header('Content-Security-Policy', [
