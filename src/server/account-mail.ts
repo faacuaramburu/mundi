@@ -29,17 +29,17 @@ function message(mode: MailMode, language: 'es' | 'en', link: string) {
   const spanish = language === 'es';
   const subject = mode === 'verifyEmail'
     ? spanish ? 'Verificá tu correo en Mundi' : 'Verify your email in Mundi'
-    : spanish ? 'Creá o cambiá tu contraseña de Mundi' : 'Create or change your Mundi password';
+    : spanish ? 'Cambiá tu contraseña de Mundi' : 'Change your Mundi password';
   const instruction = mode === 'verifyEmail'
     ? spanish ? 'Confirmá tu dirección de correo para tu cuenta de Mundi.' : 'Confirm your email address for your Mundi account.'
-    : spanish ? 'Usá este enlace para crear o cambiar tu contraseña.' : 'Use this link to create or change your password.';
+    : spanish ? 'Usá este enlace para cambiar tu contraseña.' : 'Use this link to change your password.';
   const action = mode === 'verifyEmail' ? spanish ? 'Verificar correo' : 'Verify email' : spanish ? 'Cambiar contraseña' : 'Change password';
   const footer = spanish ? 'Si no pediste este correo, podés ignorarlo.' : 'If you did not request this email, you can ignore it.';
   const escaped = link.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
   return {
     subject,
     text: `Mundi\n\n${instruction}\n\n${link}\n\n${footer}`,
-    html: `<!doctype html><html lang="${language}"><body style="margin:0;background:#f4f5f1;color:#20272a;font-family:Arial,sans-serif"><main style="max-width:480px;margin:32px auto;padding:32px"><p style="font-size:28px;font-weight:700;margin:0 0 32px">Mundi</p><h1 style="font-size:24px;line-height:1.3">${subject}</h1><p style="line-height:1.7">${instruction}</p><p style="margin:32px 0"><a href="${escaped}" style="display:inline-block;padding:14px 20px;background:#214e42;color:#fff;border-radius:6px;text-decoration:none;font-weight:700">${action}</a></p><p style="font-size:14px;line-height:1.6;color:#566360">${footer}</p><p style="font-size:12px;line-height:1.6;word-break:break-all"><a href="${escaped}" style="color:#214e42">${escaped}</a></p></main></body></html>`,
+    html: `<!doctype html><html lang="${language}"><body style="margin:0;background:#ffffff;color:#20272a;font-family:Arial,sans-serif"><main style="max-width:480px;margin:32px auto;padding:32px"><p style="font-size:28px;font-weight:700;margin:0 0 32px">Mundi</p><h1 style="font-size:24px;line-height:1.3">${subject}</h1><p style="line-height:1.7">${instruction}</p><p style="margin:32px 0"><a href="${escaped}" style="display:inline-block;padding:14px 20px;background:#214e42;color:#fff;border-radius:6px;text-decoration:none;font-weight:700">${action}</a></p><p style="font-size:14px;line-height:1.6;color:#566360">${footer}</p></main></body></html>`,
   };
 }
 

@@ -34,7 +34,7 @@ describe('account email delivery', () => {
     expect(response.json()).toEqual({ ok: true });
     expect(createLink).toHaveBeenCalledWith('resetPassword', 'player@example.com');
     const email = send.mock.calls[0]![0];
-    expect(email.subject).toBe('Creá o cambiá tu contraseña de Mundi');
+    expect(email.subject).toBe('Cambiá tu contraseña de Mundi');
     const link = new URL(email.text.split('\n').find(line => line.startsWith('https://'))!);
     expect(link.origin).toBe('https://mundi.top');
     expect(link.pathname).toBe('/cuenta/accion.html');
