@@ -30,7 +30,7 @@
     "firebase": "13.1.0",
     "firebase-admin": "14.5.0",
     "three": "0.186.1",
-    "ws": "8.22.0"
+    "ws": "8.22.2"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
